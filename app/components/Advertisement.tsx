@@ -66,7 +66,6 @@ export default function Advertisement({ slot, format = 'auto', style, className 
           data-ad-slot={slot}
           data-ad-format={format}
           data-full-width-responsive="true"
-          data-adtest="on"
         />
       )}
     </div>
