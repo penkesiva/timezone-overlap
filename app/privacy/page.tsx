@@ -15,19 +15,20 @@ export default function PrivacyPolicy() {
 
         <section>
           <h2 className="text-2xl font-semibold mb-4">Information We Collect</h2>
+          <p className="mb-4">We collect minimal information necessary for the functionality of our service:</p>
           <ul className="list-disc pl-6 space-y-2">
-            <li>Browser type and version</li>
-            <li>Operating system</li>
-            <li>Time zone settings</li>
-            <li>IP address</li>
-            <li>Pages visited and interaction with content</li>
+            <li>Time zone settings (only when you select them)</li>
+            <li>Basic usage analytics (through Google Analytics)</li>
           </ul>
+          <p className="mt-4 text-sm text-gray-400">
+            Note: We do not collect or store any personal information such as IP addresses, names, or contact details.
+          </p>
         </section>
 
         <section>
           <h2 className="text-2xl font-semibold mb-4">Cookies and Advertising</h2>
           <p>
-            We use Google AdSense to display advertisements. Google AdSense uses cookies to serve ads based on your prior visits to our website or other websites. You can opt out of personalized advertising by visiting{' '}
+            We use Google AdSense to display advertisements. Google AdSense may use cookies to serve ads. You can opt out of personalized advertising by visiting{' '}
             <a href="https://www.google.com/settings/ads" className="text-dawn hover:underline" target="_blank" rel="noopener noreferrer">
               Google Ads Settings
             </a>.
@@ -37,10 +38,9 @@ export default function PrivacyPolicy() {
         <section>
           <h2 className="text-2xl font-semibold mb-4">How We Use Your Information</h2>
           <ul className="list-disc pl-6 space-y-2">
-            <li>To provide and maintain our service</li>
-            <li>To monitor and analyze usage patterns</li>
-            <li>To display relevant advertising</li>
-            <li>To detect and prevent technical issues</li>
+            <li>To provide timezone comparison functionality</li>
+            <li>To improve our service based on anonymous usage patterns</li>
+            <li>To display relevant advertising through Google AdSense</li>
           </ul>
         </section>
 
@@ -51,8 +51,11 @@ export default function PrivacyPolicy() {
           </p>
           <ul className="list-disc pl-6 space-y-2">
             <li>Google AdSense for advertising</li>
-            <li>Google Analytics for website analytics</li>
+            <li>Google Analytics for anonymous usage statistics</li>
           </ul>
+          <p className="mt-4 text-sm text-gray-400">
+            These services may collect additional information as outlined in their respective privacy policies.
+          </p>
         </section>
 
         <section>
@@ -61,11 +64,10 @@ export default function PrivacyPolicy() {
             You have the right to:
           </p>
           <ul className="list-disc pl-6 space-y-2">
-            <li>Access your personal data</li>
-            <li>Request correction of your personal data</li>
-            <li>Request deletion of your personal data</li>
-            <li>Object to processing of your personal data</li>
-            <li>Request restriction of processing your personal data</li>
+            <li>Use our service without providing personal information</li>
+            <li>Opt out of cookies through your browser settings</li>
+            <li>Opt out of Google Analytics tracking</li>
+            <li>Opt out of personalized advertising</li>
           </ul>
         </section>
 
@@ -75,7 +77,7 @@ export default function PrivacyPolicy() {
             If you have any questions about this Privacy Policy, please contact us at:
           </p>
           <p className="mt-2">
-            Email: your-email@example.com
+            Email: privacy@timezone-overlap.com
           </p>
         </section>
 
