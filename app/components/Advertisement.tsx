@@ -12,9 +12,7 @@ interface AdvertisementProps {
 
 declare global {
   interface Window {
-    adsbygoogle: {
-      push: (params: Record<string, unknown>) => void;
-    }[];
+    adsbygoogle: any[];
   }
 }
 
@@ -29,8 +27,10 @@ export default function Advertisement({ slot, format = 'auto', style, className 
   useEffect(() => {
     if (inView && !adRef.current) {
       try {
-        (window.adsbygoogle = window.adsbygoogle || []).push({});
-        adRef.current = true;
+        if (typeof window !== 'undefined') {
+          (window.adsbygoogle = window.adsbygoogle || []).push({});
+          adRef.current = true;
+        }
       } catch (err) {
         console.error('Error loading advertisement:', err);
       }
@@ -43,7 +43,7 @@ export default function Advertisement({ slot, format = 'auto', style, className 
         <ins
           className="adsbygoogle"
           style={style || { display: 'block' }}
-          data-ad-client="YOUR_AD_CLIENT_ID" // Replace with your AdSense client ID
+          data-ad-client={process.env.NEXT_PUBLIC_ADSENSE_CLIENT_ID}
           data-ad-slot={slot}
           data-ad-format={format}
           data-full-width-responsive="true"
