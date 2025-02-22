@@ -10,9 +10,14 @@ interface AdvertisementProps {
   className?: string;
 }
 
+// Define a more specific type for AdSense
+interface AdsenseItem {
+  [key: string]: unknown;
+}
+
 declare global {
   interface Window {
-    adsbygoogle: any[];
+    adsbygoogle: Array<AdsenseItem>;
   }
 }
 
