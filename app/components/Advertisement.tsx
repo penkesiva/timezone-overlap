@@ -30,28 +30,43 @@ export default function Advertisement({ slot, format = 'auto', style, className 
   const adRef = useRef<boolean>(false);
 
   useEffect(() => {
-    if (inView && !adRef.current) {
+    if (inView && !adRef.current && typeof window !== 'undefined') {
       try {
-        if (typeof window !== 'undefined') {
-          (window.adsbygoogle = window.adsbygoogle || []).push({});
-          adRef.current = true;
+        // Initialize adsbygoogle if not already initialized
+        if (!window.adsbygoogle) {
+          window.adsbygoogle = [];
         }
+        
+        // Push the ad configuration
+        window.adsbygoogle.push({
+          google_ad_client: process.env.NEXT_PUBLIC_ADSENSE_CLIENT_ID,
+          enable_page_level_ads: true,
+          overlays: false,
+        });
+        
+        adRef.current = true;
       } catch (err) {
         console.error('Error loading advertisement:', err);
       }
     }
   }, [inView]);
 
+  if (!process.env.NEXT_PUBLIC_ADSENSE_CLIENT_ID) {
+    console.warn('AdSense client ID not found');
+    return null;
+  }
+
   return (
     <div ref={ref} className={`ad-container ${className || ''}`}>
       {inView && (
         <ins
           className="adsbygoogle"
-          style={style || { display: 'block' }}
+          style={style || { display: 'block', textAlign: 'center' }}
           data-ad-client={process.env.NEXT_PUBLIC_ADSENSE_CLIENT_ID}
           data-ad-slot={slot}
           data-ad-format={format}
           data-full-width-responsive="true"
+          data-adtest="on"
         />
       )}
     </div>

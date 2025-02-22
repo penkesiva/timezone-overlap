@@ -28,6 +28,13 @@ export default function RootLayout({
           crossOrigin="anonymous"
           strategy="afterInteractive"
         />
+        <Script id="google-adsense" strategy="afterInteractive">
+          {`
+            window.onload = function() {
+              (adsbygoogle = window.adsbygoogle || []).push({});
+            }
+          `}
+        </Script>
       </head>
       <body className={`font-aptos bg-gradient-to-br from-gray-900 to-gray-800 text-white min-h-screen ${inter.className}`}>
         {children}
