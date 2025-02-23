@@ -2,11 +2,13 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { DateTime } from 'luxon';
-import Select, { GroupBase } from 'react-select';
+import dynamic from 'next/dynamic';
 import { motion } from 'framer-motion';
 import { ClockIcon, ClipboardIcon, CheckIcon } from '@heroicons/react/24/outline';
-import Advertisement from './components/Advertisement';
 import Link from 'next/link';
+import { Suspense } from 'react';
+import type { GroupBase } from 'react-select';
+import type { ActionMeta } from 'react-select';
 
 interface TimezoneOption {
   readonly value: string;
@@ -133,6 +135,20 @@ const findTimezoneOption = (timezone: string): TimezoneOption => {
   return option || allTimezones[0];
 };
 
+// Dynamically import heavy components
+const Select = dynamic(() => import('react-select'), {
+  ssr: false,
+  loading: () => <div className="h-10 bg-gray-800/50 rounded animate-pulse" />
+}) as typeof import('react-select').default;
+
+// Dynamically import Advertisement component
+const Advertisement = dynamic(() => import('./components/Advertisement'), {
+  ssr: false,
+  loading: () => <div className="bg-gray-800/50 rounded-lg flex items-center justify-center">
+    <div className="text-sm text-gray-400">Loading Ad...</div>
+  </div>
+});
+
 export default function Home() {
   const [timezone1, setTimezone1] = useState<TimezoneOption>(() => {
     // Get user's timezone from browser
@@ -245,28 +261,32 @@ ${timezone2.label}: ${selectedTime2.toFormat('h:00 a').padEnd(8, ' ')} (${select
       </h1>
 
       {/* Top banner ad */}
-      <div className="mb-8">
-        <Advertisement
-          slot="1234567890"
-          format="horizontal"
-          className="w-full h-[90px]"
-        />
-      </div>
+      <Suspense fallback={<div className="h-[90px] bg-gray-800/50 rounded-lg" />}>
+        <div className="mb-8">
+          <Advertisement
+            slot="1234567890"
+            format="horizontal"
+            className="w-full h-[90px]"
+          />
+        </div>
+      </Suspense>
       
       <div className="grid lg:grid-cols-[1fr_300px] gap-6">
         <div className="space-y-8">
           <div className="grid md:grid-cols-2 gap-6">
             <div className="space-y-4">
               <label className="block text-sm font-medium dark:text-white text-gray-700">First Location</label>
-              <Select
-                options={groupOptions}
-                value={timezone1}
-                onChange={(option: TimezoneOption | null) => option && setTimezone1(option)}
-                className="text-gray-900"
-                isSearchable
-                placeholder="Search timezone..."
-                classNamePrefix="select"
-              />
+              <Suspense fallback={<div className="h-10 bg-gray-800/50 rounded animate-pulse" />}>
+                <Select<TimezoneOption, false, GroupBase<TimezoneOption>>
+                  options={groupOptions}
+                  value={timezone1}
+                  onChange={(option) => option && setTimezone1(option)}
+                  className="text-gray-900"
+                  isSearchable
+                  placeholder="Search timezone..."
+                  classNamePrefix="select"
+                />
+              </Suspense>
               <div className="flex items-center space-x-2">
                 <ClockIcon className="h-5 w-5 text-location1" />
                 <div>
@@ -280,15 +300,17 @@ ${timezone2.label}: ${selectedTime2.toFormat('h:00 a').padEnd(8, ' ')} (${select
             
             <div className="space-y-4">
               <label className="block text-sm font-medium dark:text-white text-gray-700">Second Location</label>
-              <Select
-                options={groupOptions}
-                value={timezone2}
-                onChange={(option: TimezoneOption | null) => option && setTimezone2(option)}
-                className="text-gray-900"
-                isSearchable
-                placeholder="Search timezone..."
-                classNamePrefix="select"
-              />
+              <Suspense fallback={<div className="h-10 bg-gray-800/50 rounded animate-pulse" />}>
+                <Select
+                  options={groupOptions}
+                  value={timezone2}
+                  onChange={(option: TimezoneOption | null) => option && setTimezone2(option)}
+                  className="text-gray-900"
+                  isSearchable
+                  placeholder="Search timezone..."
+                  classNamePrefix="select"
+                />
+              </Suspense>
               <div className="flex items-center space-x-2">
                 <ClockIcon className="h-5 w-5 text-location2" />
                 <div>

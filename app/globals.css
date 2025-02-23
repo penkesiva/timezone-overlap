@@ -8,8 +8,18 @@
   --background-end-rgb: 40, 40, 40;
 }
 
+/* Base styles with cross-browser compatibility */
+html {
+  -webkit-text-size-adjust: 100%;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
 body {
   transition: background-color 0.3s ease, color 0.3s ease;
+  -webkit-transition: background-color 0.3s ease, color 0.3s ease;
+  -moz-transition: background-color 0.3s ease, color 0.3s ease;
   color: rgb(var(--foreground-rgb));
   background: linear-gradient(
     to bottom right,
@@ -17,9 +27,26 @@ body {
     rgb(var(--background-end-rgb))
   );
   font-family: Arial, Helvetica, sans-serif;
+  min-height: 100vh;
+  /* Mobile viewport height fix */
+  min-height: -webkit-fill-available;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
 }
 
-/* Custom scrollbar styles */
+/* Fix for mobile Safari */
+@supports (-webkit-touch-callout: none) {
+  body {
+    min-height: -webkit-fill-available;
+  }
+}
+
+/* Custom scrollbar styles with cross-browser support */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 123, 84, 0.5) rgba(255, 255, 255, 0.1);
+}
+
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
@@ -37,4 +64,32 @@ body {
 
 ::-webkit-scrollbar-thumb:hover {
   background: rgba(255, 123, 84, 0.7);
+}
+
+/* Selection styles */
+::selection {
+  background-color: rgba(255, 123, 84, 0.3);
+  color: inherit;
+}
+
+/* Focus styles */
+:focus {
+  outline: 2px solid rgba(255, 123, 84, 0.5);
+  outline-offset: 2px;
+}
+
+:focus:not(:focus-visible) {
+  outline: none;
+}
+
+/* Smooth scrolling with fallback */
+@media (prefers-reduced-motion: no-preference) {
+  html {
+    scroll-behavior: smooth;
+  }
+}
+
+/* Prevent text size adjustment on orientation change */
+html {
+  -webkit-text-size-adjust: 100%;
 }
