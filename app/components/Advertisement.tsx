@@ -37,13 +37,8 @@ export default function Advertisement({ slot, format = 'auto', style, className 
           window.adsbygoogle = [];
         }
         
-        // Push the ad configuration
-        window.adsbygoogle.push({
-          google_ad_client: process.env.NEXT_PUBLIC_ADSENSE_CLIENT_ID,
-          enable_page_level_ads: true,
-          overlays: false,
-        });
-        
+        // Push a new ad unit
+        window.adsbygoogle.push({});
         adRef.current = true;
       } catch (err) {
         console.error('Error loading advertisement:', err);

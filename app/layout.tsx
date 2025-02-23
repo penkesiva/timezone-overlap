@@ -22,19 +22,13 @@ export default function RootLayout({
           href="https://fonts.googleapis.com/css2?family=Aptos:wght@400;500;600;700&display=swap"
           rel="stylesheet"
         />
+        {/* Google AdSense Script */}
         <Script
           async
           src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${process.env.NEXT_PUBLIC_ADSENSE_CLIENT_ID}`}
           crossOrigin="anonymous"
           strategy="afterInteractive"
         />
-        <Script id="google-adsense" strategy="afterInteractive">
-          {`
-            window.onload = function() {
-              (adsbygoogle = window.adsbygoogle || []).push({});
-            }
-          `}
-        </Script>
       </head>
       <body className={`font-aptos bg-gradient-to-br from-gray-900 to-gray-800 text-white min-h-screen ${inter.className}`}>
         {children}
