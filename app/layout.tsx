@@ -1,9 +1,18 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import { JetBrains_Mono, Outfit } from "next/font/google";
 import "./globals.css";
 import Script from "next/script";
 
-const inter = Inter({ subsets: ["latin"] });
+const outfit = Outfit({ 
+  subsets: ["latin"],
+  variable: '--font-aptos',
+  display: 'swap',
+});
+
+const jetbrainsMono = JetBrains_Mono({ 
+  subsets: ["latin"],
+  variable: '--font-jetbrains-mono'
+});
 
 export const metadata: Metadata = {
   title: "TimeZone Overlap - Find Common Working Hours",
@@ -26,10 +35,6 @@ export default function RootLayout({
   return (
     <html lang="en">
       <head>
-        <link
-          href="https://fonts.googleapis.com/css2?family=Aptos:wght@400;500;600;700&display=swap"
-          rel="stylesheet"
-        />
         {/* Google AdSense Script */}
         <Script
           async
@@ -40,7 +45,7 @@ export default function RootLayout({
           onError={handleAdSenseError}
         />
       </head>
-      <body className={`font-aptos bg-gradient-to-br from-gray-900 to-gray-800 text-white min-h-screen ${inter.className}`}>
+      <body className={`${outfit.variable} ${jetbrainsMono.variable} font-aptos bg-gradient-to-br from-gray-900 to-gray-800 text-white min-h-screen`}>
         {children}
       </body>
     </html>

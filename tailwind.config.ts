@@ -9,7 +9,8 @@ const config: Config = {
   theme: {
     extend: {
       fontFamily: {
-        aptos: ["Aptos", "sans-serif"],
+        aptos: ["var(--font-aptos)", "sans-serif"],
+        mono: ["var(--font-jetbrains-mono)", "monospace"],
       },
       colors: {
         location1: {
