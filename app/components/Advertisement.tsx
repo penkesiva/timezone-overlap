@@ -6,22 +6,16 @@ import { useInView } from 'react-intersection-observer';
 interface AdvertisementProps {
   slot: string;
   format?: 'auto' | 'fluid' | 'rectangle' | 'vertical' | 'horizontal';
-  style?: React.CSSProperties;
   className?: string;
-}
-
-// Define a more specific type for AdSense
-interface AdsenseItem {
-  [key: string]: unknown;
 }
 
 declare global {
   interface Window {
-    adsbygoogle: any[];
+    adsbygoogle: Array<Record<string, unknown>>;
   }
 }
 
-export default function Advertisement({ slot, format = 'auto', style, className }: AdvertisementProps) {
+export default function Advertisement({ slot, format = 'auto', className }: AdvertisementProps) {
   const { ref, inView } = useInView({
     threshold: 0,
     triggerOnce: true,
