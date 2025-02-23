@@ -247,9 +247,9 @@ ${timezone2.label}: ${selectedTime2.toFormat('h:00 a').padEnd(8, ' ')} (${select
       {/* Top banner ad */}
       <div className="mb-8">
         <Advertisement
-          slot="top-banner"
+          slot="1234567890"
           format="horizontal"
-          className="w-full h-[90px] bg-gray-800 rounded-lg overflow-hidden"
+          className="w-full h-[90px]"
         />
       </div>
       
@@ -424,22 +424,22 @@ ${timezone2.label}: ${selectedTime2.toFormat('h:00 a').padEnd(8, ' ')} (${select
           )}
 
           {/* Bottom banner ad */}
-          <div className="mb-8">
+          <div className="mt-8">
             <Advertisement
-              slot="bottom-banner"
+              slot="0987654321"
               format="horizontal"
-              className="w-full h-[90px] bg-gray-800 rounded-lg overflow-hidden"
+              className="w-full h-[90px]"
             />
           </div>
         </div>
 
-        {/* Sidebar ad - now properly placed in the grid */}
+        {/* Sidebar ad */}
         <div className="hidden lg:block">
           <div className="sticky top-4">
             <Advertisement
-              slot="sidebar"
+              slot="1357924680"
               format="vertical"
-              className="w-full h-[600px] bg-gray-800 rounded-lg overflow-hidden"
+              className="w-full h-[600px]"
             />
           </div>
         </div>
@@ -448,9 +448,9 @@ ${timezone2.label}: ${selectedTime2.toFormat('h:00 a').padEnd(8, ' ')} (${select
       {/* In-feed ad for mobile */}
       <div className="mt-8 lg:hidden">
         <Advertisement
-          slot="mobile-feed"
+          slot="2468013579"
           format="rectangle"
-          className="w-full h-[250px] bg-gray-800 rounded-lg overflow-hidden"
+          className="w-full h-[250px]"
         />
       </div>
 

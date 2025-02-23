@@ -17,7 +17,7 @@ interface AdsenseItem {
 
 declare global {
   interface Window {
-    adsbygoogle: Array<AdsenseItem>;
+    adsbygoogle: any[];
   }
 }
 
@@ -30,15 +30,6 @@ export default function Advertisement({ slot, format = 'auto', style, className 
   const adRef = useRef<boolean>(false);
 
   useEffect(() => {
-    // Debug information
-    console.log('AdSense Debug Info:', {
-      clientId: process.env.NEXT_PUBLIC_ADSENSE_CLIENT_ID,
-      slot,
-      format,
-      inView,
-      adRefCurrent: adRef.current
-    });
-
     if (inView && !adRef.current && typeof window !== 'undefined') {
       try {
         // Initialize adsbygoogle if not already initialized
@@ -49,30 +40,29 @@ export default function Advertisement({ slot, format = 'auto', style, className 
         // Push a new ad unit
         window.adsbygoogle.push({});
         adRef.current = true;
-        console.log('Ad unit pushed successfully');
+        console.log('Ad unit pushed successfully for slot:', slot);
       } catch (err) {
         console.error('Error loading advertisement:', err);
       }
     }
-  }, [inView, slot, format]);
+  }, [inView, slot]);
 
-  // Early validation
   if (!process.env.NEXT_PUBLIC_ADSENSE_CLIENT_ID) {
-    console.warn('AdSense client ID not found');
-    return null;
-  }
-
-  if (!slot) {
-    console.warn('Ad slot ID not provided');
-    return null;
+    return (
+      <div className={`flex items-center justify-center ${className || ''} bg-gray-800/50 rounded-lg`}>
+        <p className="text-sm text-gray-400">Ad Client ID Not Found</p>
+      </div>
+    );
   }
 
   return (
-    <div ref={ref} className={`ad-container ${className || ''}`}>
-      {inView && (
+    <div ref={ref} className={`relative ad-container ${className || ''} bg-gray-800/50 rounded-lg flex items-center justify-center`}>
+      {!inView ? (
+        <div className="text-sm text-gray-400">Loading Ad...</div>
+      ) : (
         <ins
-          className="adsbygoogle"
-          style={style || { display: 'block', textAlign: 'center' }}
+          className="adsbygoogle w-full h-full"
+          style={{ display: 'block' }}
           data-ad-client={process.env.NEXT_PUBLIC_ADSENSE_CLIENT_ID}
           data-ad-slot={slot}
           data-ad-format={format}
