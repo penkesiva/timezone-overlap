@@ -24,6 +24,9 @@ async function generateFavicons() {
 
   // Create ICO file from PNGs
   const icoBuffer = await pngToIco(pngBuffers);
+  
+  // Save favicon.ico in both app and public directories
+  await fs.writeFile(path.join(__dirname, '../app/favicon.ico'), icoBuffer);
   await fs.writeFile(path.join(__dirname, '../public/favicon.ico'), icoBuffer);
   
   // Generate Apple Touch Icon
