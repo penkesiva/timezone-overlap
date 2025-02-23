@@ -30,6 +30,15 @@ export default function Advertisement({ slot, format = 'auto', style, className 
   const adRef = useRef<boolean>(false);
 
   useEffect(() => {
+    // Debug information
+    console.log('AdSense Debug Info:', {
+      clientId: process.env.NEXT_PUBLIC_ADSENSE_CLIENT_ID,
+      slot,
+      format,
+      inView,
+      adRefCurrent: adRef.current
+    });
+
     if (inView && !adRef.current && typeof window !== 'undefined') {
       try {
         // Initialize adsbygoogle if not already initialized
@@ -40,14 +49,21 @@ export default function Advertisement({ slot, format = 'auto', style, className 
         // Push a new ad unit
         window.adsbygoogle.push({});
         adRef.current = true;
+        console.log('Ad unit pushed successfully');
       } catch (err) {
         console.error('Error loading advertisement:', err);
       }
     }
-  }, [inView]);
+  }, [inView, slot, format]);
 
+  // Early validation
   if (!process.env.NEXT_PUBLIC_ADSENSE_CLIENT_ID) {
     console.warn('AdSense client ID not found');
+    return null;
+  }
+
+  if (!slot) {
+    console.warn('Ad slot ID not provided');
     return null;
   }
 

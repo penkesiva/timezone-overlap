@@ -15,6 +15,14 @@ export default function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
+  const handleAdSenseLoad = () => {
+    console.log('AdSense script loaded');
+  };
+
+  const handleAdSenseError = () => {
+    console.error('AdSense script failed to load');
+  };
+
   return (
     <html lang="en">
       <head>
@@ -28,6 +36,8 @@ export default function RootLayout({
           src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${process.env.NEXT_PUBLIC_ADSENSE_CLIENT_ID}`}
           crossOrigin="anonymous"
           strategy="afterInteractive"
+          onLoad={handleAdSenseLoad}
+          onError={handleAdSenseError}
         />
       </head>
       <body className={`font-aptos bg-gradient-to-br from-gray-900 to-gray-800 text-white min-h-screen ${inter.className}`}>
