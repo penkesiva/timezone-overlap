@@ -239,8 +239,8 @@ ${timezone2.label}: ${selectedTime2.toFormat('h:00 a').padEnd(8, ' ')} (${select
   }
 
   return (
-    <main className="container relative mx-auto px-4 py-8 min-h-screen font-aptos">
-      <h1 className="text-4xl font-bold text-center mb-8 text-transparent bg-clip-text bg-gradient-to-r from-location1-bright to-location2-bright">
+    <main className="container relative mx-auto px-4 py-8 min-h-screen">
+      <h1 className="text-4xl font-bold text-center mb-8 text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600 dark:from-location1-bright dark:to-location2-bright">
         TimeZone Overlap
       </h1>
 
@@ -257,7 +257,7 @@ ${timezone2.label}: ${selectedTime2.toFormat('h:00 a').padEnd(8, ' ')} (${select
         <div className="space-y-8">
           <div className="grid md:grid-cols-2 gap-6">
             <div className="space-y-4">
-              <label className="block text-sm font-medium">First Location</label>
+              <label className="block text-sm font-medium dark:text-white text-gray-700">First Location</label>
               <Select
                 options={groupOptions}
                 value={timezone1}
@@ -270,8 +270,8 @@ ${timezone2.label}: ${selectedTime2.toFormat('h:00 a').padEnd(8, ' ')} (${select
               <div className="flex items-center space-x-2">
                 <ClockIcon className="h-5 w-5 text-location1" />
                 <div>
-                  <span className="text-location1-bright font-mono tabular-nums">{time1.toFormat('h:mm a').padEnd(8, ' ')}</span>
-                  <span className="text-gray-400 text-sm ml-2">
+                  <span className="text-location1-bright font-mono tabular-nums dark:text-location1-bright text-blue-600">{time1.toFormat('h:mm a').padEnd(8, ' ')}</span>
+                  <span className="text-gray-500 dark:text-gray-400 text-sm ml-2">
                     {time1.toFormat('EEE, MMM d')}
                   </span>
                 </div>
@@ -279,7 +279,7 @@ ${timezone2.label}: ${selectedTime2.toFormat('h:00 a').padEnd(8, ' ')} (${select
             </div>
             
             <div className="space-y-4">
-              <label className="block text-sm font-medium">Second Location</label>
+              <label className="block text-sm font-medium dark:text-white text-gray-700">Second Location</label>
               <Select
                 options={groupOptions}
                 value={timezone2}
@@ -292,8 +292,8 @@ ${timezone2.label}: ${selectedTime2.toFormat('h:00 a').padEnd(8, ' ')} (${select
               <div className="flex items-center space-x-2">
                 <ClockIcon className="h-5 w-5 text-location2" />
                 <div>
-                  <span className="text-location2-bright font-mono tabular-nums">{time2.toFormat('h:mm a').padEnd(8, ' ')}</span>
-                  <span className="text-gray-400 text-sm ml-2">
+                  <span className="text-location2-bright font-mono tabular-nums dark:text-location2-bright text-orange-600">{time2.toFormat('h:mm a').padEnd(8, ' ')}</span>
+                  <span className="text-gray-500 dark:text-gray-400 text-sm ml-2">
                     {time2.toFormat('EEE, MMM d')}
                   </span>
                 </div>

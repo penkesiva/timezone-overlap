@@ -6,7 +6,6 @@ import AdSenseScript from "./components/AdSenseScript";
 
 const outfit = Outfit({ 
   subsets: ["latin"],
-  variable: '--font-aptos',
   display: 'swap',
 });
 
@@ -30,7 +29,7 @@ export default function RootLayout({
       <head>
         <AdSenseScript />
       </head>
-      <body className={`${outfit.variable} ${jetbrainsMono.variable} font-aptos bg-gradient-to-br from-gray-900 to-gray-800 text-white min-h-screen transition-colors duration-200`}>
+      <body className={`${outfit.className} ${jetbrainsMono.variable} bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 text-gray-900 dark:text-white min-h-screen transition-colors duration-200`}>
         <ThemeToggle />
         {children}
       </body>
