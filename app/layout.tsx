@@ -19,6 +19,23 @@ export const metadata: Metadata = {
   description: "Easily visualize and compare time zones across different countries. Find overlapping working hours for international teams and meetings. Free time zone converter and meeting planner.",
   keywords: "timezone overlap, time zone converter, meeting planner, international meetings, working hours calculator, global team coordination",
   authors: [{ name: "TimeZone Overlap" }],
+  icons: {
+    icon: [
+      { url: '/favicon.ico' },
+      { url: '/favicon.svg', type: 'image/svg+xml' },
+    ],
+    apple: [
+      { url: '/apple-touch-icon.png' },
+    ],
+    other: [
+      {
+        rel: 'mask-icon',
+        url: '/safari-pinned-tab.svg',
+        color: '#4A90E2'
+      }
+    ]
+  },
+  manifest: '/site.webmanifest',
   openGraph: {
     title: "TimeZone Overlap - Find Common Working Hours",
     description: "Easily visualize and compare time zones across different countries. Perfect for planning international meetings and coordinating global teams.",
@@ -62,6 +79,8 @@ export default function RootLayout({
   return (
     <html lang="en">
       <head>
+        <meta name="theme-color" content="#1a1a1a" />
+        <link rel="mask-icon" href="/safari-pinned-tab.svg" color="#4A90E2" />
         <AdSenseScript />
       </head>
       <body className={`${outfit.className} ${jetbrainsMono.variable} bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 text-gray-900 dark:text-white min-h-screen transition-colors duration-200`}>
