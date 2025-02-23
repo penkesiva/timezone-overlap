@@ -145,7 +145,7 @@ export default function Home() {
     group: 'Americas - North'
   });
   const [hoveredHour, setHoveredHour] = useState<number | null>(null);
-  const [selectedHour, setSelectedHour] = useState<number | null>(null);
+  const [selectedHour, setSelectedHour] = useState<number>(9);
   const [currentTime, setCurrentTime] = useState<DateTime | null>(null);
   const [mounted, setMounted] = useState(false);
   const [slotCopySuccess, setSlotCopySuccess] = useState(false);
