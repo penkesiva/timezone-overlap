@@ -240,7 +240,7 @@ ${timezone2.label}: ${selectedTime2.toFormat('h:00 a').padEnd(8, ' ')} (${select
 
   return (
     <main className="container relative mx-auto px-4 py-8 min-h-screen">
-      <h1 className="text-4xl font-bold text-center mb-8 text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600 dark:from-location1-bright dark:to-location2-bright">
+      <h1 className="text-4xl font-bold text-center mb-8 text-transparent bg-clip-text bg-gradient-to-r from-gray-800 to-gray-900 dark:from-location1-bright dark:to-location2-bright">
         TimeZone Overlap
       </h1>
 
@@ -402,7 +402,7 @@ ${timezone2.label}: ${selectedTime2.toFormat('h:00 a').padEnd(8, ' ')} (${select
                 <button
                   onClick={copySelectedSlot}
                   className={`p-2 rounded-lg transition-colors ${
-                    slotCopySuccess ? 'bg-green-600' : 'bg-gray-700 hover:bg-gray-600'
+                    slotCopySuccess ? 'bg-green-600 text-white' : 'bg-gray-700 hover:bg-gray-600 text-white dark:text-white'
                   }`}
                   aria-label="Copy selected time slot"
                 >

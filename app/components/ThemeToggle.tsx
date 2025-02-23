@@ -5,8 +5,10 @@ import { SunIcon, MoonIcon } from '@heroicons/react/24/outline';
 
 export default function ThemeToggle() {
   const [isDark, setIsDark] = useState(true);
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
+    setMounted(true);
     // Check if user has a theme preference in localStorage
     const savedTheme = localStorage.getItem('theme');
     if (savedTheme) {
@@ -29,6 +31,10 @@ export default function ThemeToggle() {
     document.body.classList.toggle('from-gray-50', !newTheme);
     document.body.classList.toggle('to-gray-100', !newTheme);
   };
+
+  if (!mounted) {
+    return null;
+  }
 
   return (
     <button
