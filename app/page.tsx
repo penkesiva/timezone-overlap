@@ -9,6 +9,7 @@ import Link from 'next/link';
 import { Suspense } from 'react';
 import type { GroupBase } from 'react-select';
 import type { ActionMeta } from 'react-select';
+import { useSwipeable } from 'react-swipeable';
 
 interface TimezoneOption {
   readonly value: string;
@@ -246,6 +247,23 @@ ${timezone2.label}: ${selectedTime2.toFormat('h:00 a').padEnd(8, ' ')} (${select
     }
   }, [selectedHour, timezone1.label, timezone2.label, time1, time2, hourDiff]);
 
+  const handleSwipe = useCallback((direction: 'LEFT' | 'RIGHT') => {
+    if (selectedHour === null) return;
+    
+    const newHour = direction === 'LEFT' 
+      ? (selectedHour + 1) % 24 
+      : (selectedHour - 1 + 24) % 24;
+    
+    setSelectedHour(newHour);
+  }, [selectedHour]);
+
+  const swipeHandlers = useSwipeable({
+    onSwipedLeft: () => handleSwipe('LEFT'),
+    onSwipedRight: () => handleSwipe('RIGHT'),
+    preventScrollOnSwipe: true,
+    trackMouse: false
+  });
+
   if (!mounted) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -256,7 +274,7 @@ ${timezone2.label}: ${selectedTime2.toFormat('h:00 a').padEnd(8, ' ')} (${select
 
   return (
     <main className="container relative mx-auto px-4 py-8 min-h-screen">
-      <h1 className="text-4xl font-bold text-center mb-8 text-transparent bg-clip-text bg-gradient-to-r from-gray-800 to-gray-900 dark:from-location1-bright dark:to-location2-bright">
+      <h1 className="text-4xl font-bold text-center mb-8 text-transparent bg-clip-text bg-gradient-to-r from-gray-800 to-gray-900 dark:from-location1-bright dark:to-location2-bright pt-12 md:pt-0">
         TimeZone Overlap
       </h1>
 
@@ -323,7 +341,12 @@ ${timezone2.label}: ${selectedTime2.toFormat('h:00 a').padEnd(8, ' ')} (${select
             </div>
           </div>
 
-          <div className="relative bg-gray-800 rounded-lg p-6">
+          <div className="relative bg-gray-800 rounded-lg p-6" {...swipeHandlers}>
+            {/* Add swipe instruction for mobile */}
+            <div className="md:hidden text-sm text-gray-400 mb-4 text-center">
+              Swipe left or right to change time
+            </div>
+            
             {/* Add color legend */}
             <div className="flex flex-wrap gap-4 mb-4 text-sm">
               <div className="flex items-center gap-2">
