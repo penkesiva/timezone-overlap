@@ -56,7 +56,7 @@ export const metadata: Metadata = {
     images: ["/twitter-image.jpg"],
   },
   verification: {
-    google: "your-google-verification-code",
+    google: process.env.NEXT_PUBLIC_ADSENSE_CLIENT_ID?.replace('ca-pub-', ''),
   },
   alternates: {
     canonical: "https://timezoneoverlap.net",
