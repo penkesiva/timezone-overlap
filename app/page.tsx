@@ -423,11 +423,12 @@ ${timezone2.label}: ${selectedTime2.toFormat('h:00 a').padEnd(8, ' ')} (${select
                 </div>
                 <button
                   onClick={copySelectedSlot}
-                  className={`p-2 rounded-lg transition-colors ${
+                  className={`flex items-center space-x-2 px-4 py-2 rounded-lg transition-colors ${
                     slotCopySuccess ? 'bg-green-600 text-white' : 'bg-gray-700 hover:bg-gray-600 text-white dark:text-white'
                   }`}
-                  aria-label="Copy selected time slot"
+                  aria-label={slotCopySuccess ? "Time slot copied" : "Copy selected time slot"}
                 >
+                  <span className="text-sm font-medium">{slotCopySuccess ? 'Copied!' : 'Copy'}</span>
                   {slotCopySuccess ? (
                     <CheckIcon className="h-5 w-5" />
                   ) : (
