@@ -95,11 +95,17 @@ Open [http://localhost:3000](http://localhost:3000) with your browser to see the
 
 ## Environment Variables
 
-Create a `.env.local` file in the root directory with the following variables:
-
+1. Copy the example environment file:
 ```bash
-NEXT_PUBLIC_ADSENSE_CLIENT_ID=your_adsense_client_id
+cp .env.example .env.local
 ```
+
+2. Update `.env.local` with your actual values:
+```bash
+NEXT_PUBLIC_ADSENSE_CLIENT_ID=your_adsense_client_id  # Your Google AdSense Publisher ID
+```
+
+Note: Never commit `.env.local` to version control as it contains sensitive information. The `.env.example` file serves as a template and should be kept up to date with all required environment variables (but without actual values).
 
 ## Contributing
 
