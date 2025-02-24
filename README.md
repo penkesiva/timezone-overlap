@@ -1,4 +1,81 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# TimeZone Overlap
+
+A modern web application that helps users visualize and find overlapping working hours across different time zones. Perfect for coordinating meetings and work schedules for distributed teams across the globe.
+
+## Tech Stack
+
+### Frontend
+- **Framework**: Next.js 15.1.7 with App Router
+- **Language**: TypeScript
+- **Styling**: Tailwind CSS
+- **State Management**: React Hooks
+- **UI Components**:
+  - React Select for searchable dropdowns
+  - Framer Motion for animations
+  - Heroicons for icons
+  - Custom components
+
+### Date & Time Handling
+- Luxon for timezone calculations and formatting
+- Date-fns for additional date utilities
+
+### Performance & SEO
+- Dynamic imports for code splitting
+- Server-side and client components
+- Optimized meta tags and OpenGraph
+- Responsive images and favicons
+- PWA support
+
+### Development Tools
+- ESLint for code quality
+- Sharp for image processing
+- SVGO for SVG optimization
+
+## Key Features
+
+### Time Zone Management
+- Real-time timezone comparison
+- Visual grid showing 24-hour overlap
+- Auto-detection of user's timezone
+- Searchable timezone selection with major cities
+- Support for all major global timezones
+
+### Visual Interface
+* Interactive Time Grid
+  - Color-coded working hours (9 AM - 5 PM)
+  - Visual overlap indication
+  - Hover states with exact times
+  - Click to select specific time slots
+* Responsive Design
+  - Desktop optimized layout
+  - Mobile-friendly interface
+  - Adaptive ad placements
+
+### User Experience
+* Theme Support
+  - Dark/Light mode toggle
+  - System theme detection
+  - Persistent theme preference
+  - Smooth theme transitions
+* Accessibility
+  - Keyboard navigation
+  - Screen reader support
+  - ARIA labels
+  - Focus management
+
+### Additional Features
+* Copy Functionality
+  - One-click time slot copying
+  - Formatted output with both timezones
+  - Success confirmation
+* Privacy Focused
+  - Minimal data collection
+  - No personal information stored
+  - Transparent privacy policy
+* Monetization
+  - Google AdSense integration
+  - Strategic ad placements
+  - Non-intrusive ad experience
 
 ## Getting Started
 
@@ -16,21 +93,18 @@ bun dev
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Environment Variables
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Create a `.env.local` file in the root directory with the following variables:
 
-## Learn More
+```bash
+NEXT_PUBLIC_ADSENSE_CLIENT_ID=your_adsense_client_id
+```
 
-To learn more about Next.js, take a look at the following resources:
+## Contributing
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Contributions are welcome! Please feel free to submit a Pull Request.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## License
 
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+This project is licensed under the MIT License - see the LICENSE file for details.
