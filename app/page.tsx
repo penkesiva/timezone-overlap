@@ -264,6 +264,13 @@ ${timezone2.label}: ${selectedTime2.toFormat('h:00 a').padEnd(8, ' ')} (${select
     trackMouse: false
   });
 
+  // Add a function to get the current hour with decimal for minutes
+  const getCurrentHourDecimal = useCallback(() => {
+    if (!currentTime) return 0;
+    const now = DateTime.now();
+    return now.hour + (now.minute / 60);
+  }, [currentTime]);
+
   if (!mounted) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -361,61 +368,77 @@ ${timezone2.label}: ${selectedTime2.toFormat('h:00 a').padEnd(8, ' ')} (${select
                 <div className="w-4 h-4 bg-[#AF69EE] rounded"></div>
                 <span className="text-[#AF69EE]">Overlapping working hours</span>
               </div>
+              <div className="flex items-center gap-2">
+                <div className="w-0.5 h-4 bg-white"></div>
+                <span className="text-white">Current local time</span>
+              </div>
             </div>
 
-            <div className="grid grid-cols-24 gap-0">
-              {workingHours.map((hour) => {
-                const time1Hour = hour;
-                const time2Hour = (hour + hourDiff + 24) % 24;
-                
-                const isWorkingHour1 = time1Hour >= 9 && time1Hour <= 17;
-                const isWorkingHour2 = time2Hour >= 9 && time2Hour <= 17;
-                const isOverlap = isWorkingHour1 && isWorkingHour2;
+            <div className="relative">
+              {/* Add current time indicator */}
+              {currentTime && (
+                <div 
+                  className="absolute top-0 bottom-0 w-0.5 bg-white z-10"
+                  style={{ 
+                    left: `${(getCurrentHourDecimal() / 24) * 100}%`,
+                    boxShadow: '0 0 4px rgba(255, 255, 255, 0.7)'
+                  }}
+                />
+              )}
+              <div className="grid grid-cols-24 gap-0">
+                {workingHours.map((hour) => {
+                  const time1Hour = hour;
+                  const time2Hour = (hour + hourDiff + 24) % 24;
+                  
+                  const isWorkingHour1 = time1Hour >= 9 && time1Hour <= 17;
+                  const isWorkingHour2 = time2Hour >= 9 && time2Hour <= 17;
+                  const isOverlap = isWorkingHour1 && isWorkingHour2;
 
-                return (
-                  <div
-                    key={hour}
-                    className={`relative h-32 cursor-pointer ${
-                      selectedHour === hour ? 'ring-2 ring-white' : ''
-                    }`}
-                    onMouseEnter={() => setHoveredHour(hour)}
-                    onMouseLeave={() => setHoveredHour(null)}
-                    onClick={() => setSelectedHour(hour)}
-                  >
+                  return (
                     <div
-                      className={`h-full border-r border-gray-700 ${
-                        isWorkingHour1 ? 'bg-location1 bg-opacity-50' : 'bg-opacity-0'
+                      key={hour}
+                      className={`relative h-32 cursor-pointer ${
+                        selectedHour === hour ? 'ring-2 ring-white' : ''
                       }`}
-                    />
-                    <div
-                      className={`absolute inset-0 ${
-                        isWorkingHour2 ? 'bg-location2 bg-opacity-50' : 'bg-opacity-0'
-                      }`}
-                    />
-                    {isOverlap && (
-                      <div className="absolute inset-0 bg-[#AF69EE] bg-opacity-50 mix-blend-multiply" />
-                    )}
-                    {hoveredHour === hour && (
-                      <motion.div
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        className="absolute top-0 left-0 right-0 h-full bg-white bg-opacity-20 z-10"
+                      onMouseEnter={() => setHoveredHour(hour)}
+                      onMouseLeave={() => setHoveredHour(null)}
+                      onClick={() => setSelectedHour(hour)}
+                    >
+                      <div
+                        className={`h-full border-r border-gray-700 ${
+                          isWorkingHour1 ? 'bg-location1 bg-opacity-50' : 'bg-opacity-0'
+                        }`}
                       />
-                    )}
-                    {hoveredHour === hour && (
-                      <div className="absolute -top-8 left-1/2 transform -translate-x-1/2 bg-gray-900 px-3 py-1 rounded text-sm whitespace-nowrap shadow-lg z-20">
-                        <span className={`font-mono tabular-nums ${isWorkingHour1 ? 'text-location1-bright' : 'text-location1'}`}>
-                          {time1.set({ hour: time1Hour, minute: 0, second: 0 }).toFormat('h:00 a').padEnd(8, ' ')}
-                        </span>
-                        {' / '}
-                        <span className={`font-mono tabular-nums ${isWorkingHour2 ? 'text-location2-bright' : 'text-location2'}`}>
-                          {time2.set({ hour: time2Hour, minute: 0, second: 0 }).toFormat('h:00 a').padEnd(8, ' ')}
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
+                      <div
+                        className={`absolute inset-0 ${
+                          isWorkingHour2 ? 'bg-location2 bg-opacity-50' : 'bg-opacity-0'
+                        }`}
+                      />
+                      {isOverlap && (
+                        <div className="absolute inset-0 bg-[#AF69EE] bg-opacity-50 mix-blend-multiply" />
+                      )}
+                      {hoveredHour === hour && (
+                        <motion.div
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          className="absolute top-0 left-0 right-0 h-full bg-white bg-opacity-20 z-10"
+                        />
+                      )}
+                      {hoveredHour === hour && (
+                        <div className="absolute -top-8 left-1/2 transform -translate-x-1/2 bg-gray-900 px-3 py-1 rounded text-sm whitespace-nowrap shadow-lg z-20">
+                          <span className={`font-mono tabular-nums ${isWorkingHour1 ? 'text-location1-bright' : 'text-location1'}`}>
+                            {time1.set({ hour: time1Hour, minute: 0, second: 0 }).toFormat('h:00 a').padEnd(8, ' ')}
+                          </span>
+                          {' / '}
+                          <span className={`font-mono tabular-nums ${isWorkingHour2 ? 'text-location2-bright' : 'text-location2'}`}>
+                            {time2.set({ hour: time2Hour, minute: 0, second: 0 }).toFormat('h:00 a').padEnd(8, ' ')}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
             </div>
             
             <div className="absolute bottom-2 left-4 right-4 flex justify-between text-sm text-gray-400">
