@@ -150,6 +150,12 @@ const Advertisement = dynamic(() => import('./components/Advertisement'), {
   </div>
 });
 
+// Dynamically import LocationWeather component with NoSSR to prevent blocking
+const LocationWeather = dynamic(() => import('./components/LocationWeather'), {
+  ssr: false,
+  loading: () => null // Don't show a loading state to prevent layout shifts
+});
+
 export default function Home() {
   const [timezone1, setTimezone1] = useState<TimezoneOption>(() => {
     // Get user's timezone from browser
@@ -162,10 +168,11 @@ export default function Home() {
     group: 'Americas - North'
   });
   const [hoveredHour, setHoveredHour] = useState<number | null>(null);
-  const [selectedHour, setSelectedHour] = useState<number>(9);
+  const [selectedHour, setSelectedHour] = useState<number | null>(null);
   const [currentTime, setCurrentTime] = useState<DateTime | null>(null);
   const [mounted, setMounted] = useState(false);
   const [slotCopySuccess, setSlotCopySuccess] = useState(false);
+  const [showOverlaps, setShowOverlaps] = useState<boolean>(false);
 
   useEffect(() => {
     setMounted(true);
@@ -319,6 +326,11 @@ ${timezone2.label}: ${selectedTime2.toFormat('h:00 a').padEnd(8, ' ')} (${select
                   <span className="text-gray-500 dark:text-gray-400 text-sm ml-2">
                     {time1.toFormat('EEE, MMM d')}
                   </span>
+                  <LocationWeather 
+                    locationName={timezone1.label}
+                    timezone={timezone1.value}
+                    className="mt-1"
+                  />
                 </div>
               </div>
             </div>
@@ -343,6 +355,11 @@ ${timezone2.label}: ${selectedTime2.toFormat('h:00 a').padEnd(8, ' ')} (${select
                   <span className="text-gray-500 dark:text-gray-400 text-sm ml-2">
                     {time2.toFormat('EEE, MMM d')}
                   </span>
+                  <LocationWeather 
+                    locationName={timezone2.label}
+                    timezone={timezone2.value}
+                    className="mt-1"
+                  />
                 </div>
               </div>
             </div>
@@ -365,17 +382,23 @@ ${timezone2.label}: ${selectedTime2.toFormat('h:00 a').padEnd(8, ' ')} (${select
                 <span className="text-location2-bright">{timezone2.label} working hours (9:00 AM-5:00 PM)</span>
               </div>
               <div className="flex items-center gap-2">
-                <div className="w-4 h-4 bg-[#AF69EE] rounded"></div>
-                <span className="text-[#AF69EE]">Overlapping working hours</span>
-              </div>
-              <div className="flex items-center gap-2">
                 <div className="w-0.5 h-4 bg-white"></div>
                 <span className="text-white">Current local time</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <input 
+                  type="checkbox" 
+                  id="show-overlaps" 
+                  checked={showOverlaps} 
+                  onChange={(e) => setShowOverlaps(e.target.checked)}
+                  className="h-4 w-4 rounded bg-gray-700 border-gray-600 text-location1-bright focus:ring-location1-bright"
+                />
+                <label htmlFor="show-overlaps" className="text-gray-300">Show overlapping hours</label>
               </div>
             </div>
 
             <div className="relative">
-              {/* Add current time indicator */}
+              {/* Current time indicator */}
               {currentTime && (
                 <div 
                   className="absolute top-0 bottom-0 w-0.5 bg-white z-10"
@@ -385,60 +408,112 @@ ${timezone2.label}: ${selectedTime2.toFormat('h:00 a').padEnd(8, ' ')} (${select
                   }}
                 />
               )}
-              <div className="grid grid-cols-24 gap-0">
-                {workingHours.map((hour) => {
-                  const time1Hour = hour;
-                  const time2Hour = (hour + hourDiff + 24) % 24;
-                  
-                  const isWorkingHour1 = time1Hour >= 9 && time1Hour <= 17;
-                  const isWorkingHour2 = time2Hour >= 9 && time2Hour <= 17;
-                  const isOverlap = isWorkingHour1 && isWorkingHour2;
+              
+              {/* Split into two equal height rows */}
+              <div className="grid grid-rows-2 h-32 relative">
+                {/* Location labels */}
+                <div className="absolute -left-24 top-0 h-full flex flex-col justify-around text-xs">
+                  <div className="text-location1-bright">{timezone1.label.split(' - ')[0]}</div>
+                  <div className="text-location2-bright">{timezone2.label.split(' - ')[0]}</div>
+                </div>
 
-                  return (
-                    <div
-                      key={hour}
-                      className={`relative h-32 cursor-pointer ${
-                        selectedHour === hour ? 'ring-2 ring-white' : ''
-                      }`}
-                      onMouseEnter={() => setHoveredHour(hour)}
-                      onMouseLeave={() => setHoveredHour(null)}
-                      onClick={() => setSelectedHour(hour)}
-                    >
+                {/* First location row */}
+                <div className="grid grid-cols-24 gap-0 border-b border-gray-700">
+                  {workingHours.map((hour) => {
+                    const time1Hour = hour;
+                    const time2Hour = (hour + hourDiff + 24) % 24;
+                    
+                    const isWorkingHour1 = time1Hour >= 9 && time1Hour <= 17;
+                    const isWorkingHour2 = time2Hour >= 9 && time2Hour <= 17;
+                    const isOverlap = isWorkingHour1 && isWorkingHour2;
+
+                    return (
                       <div
-                        className={`h-full border-r border-gray-700 ${
-                          isWorkingHour1 ? 'bg-location1 bg-opacity-50' : 'bg-opacity-0'
+                        key={`loc1-${hour}`}
+                        className={`relative h-full cursor-pointer ${
+                          selectedHour === hour ? 'ring-2 ring-white' : ''
                         }`}
-                      />
-                      <div
-                        className={`absolute inset-0 ${
-                          isWorkingHour2 ? 'bg-location2 bg-opacity-50' : 'bg-opacity-0'
-                        }`}
-                      />
-                      {isOverlap && (
-                        <div className="absolute inset-0 bg-[#AF69EE] bg-opacity-50 mix-blend-multiply" />
-                      )}
-                      {hoveredHour === hour && (
-                        <motion.div
-                          initial={{ opacity: 0 }}
-                          animate={{ opacity: 1 }}
-                          className="absolute top-0 left-0 right-0 h-full bg-white bg-opacity-20 z-10"
+                        onMouseEnter={() => setHoveredHour(hour)}
+                        onMouseLeave={() => setHoveredHour(null)}
+                        onClick={() => setSelectedHour(hour)}
+                      >
+                        <div
+                          className={`h-full border-r border-gray-700 ${
+                            isWorkingHour1 ? 'bg-location1 bg-opacity-50' : 'bg-opacity-0'
+                          }`}
                         />
-                      )}
-                      {hoveredHour === hour && (
-                        <div className="absolute -top-8 left-1/2 transform -translate-x-1/2 bg-gray-900 px-3 py-1 rounded text-sm whitespace-nowrap shadow-lg z-20">
-                          <span className={`font-mono tabular-nums ${isWorkingHour1 ? 'text-location1-bright' : 'text-location1'}`}>
-                            {time1.set({ hour: time1Hour, minute: 0, second: 0 }).toFormat('h:00 a').padEnd(8, ' ')}
-                          </span>
-                          {' / '}
-                          <span className={`font-mono tabular-nums ${isWorkingHour2 ? 'text-location2-bright' : 'text-location2'}`}>
-                            {time2.set({ hour: time2Hour, minute: 0, second: 0 }).toFormat('h:00 a').padEnd(8, ' ')}
-                          </span>
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
+                        {showOverlaps && isOverlap && (
+                          <div className="absolute inset-0 bg-white bg-opacity-20" />
+                        )}
+                        {hoveredHour === hour && (
+                          <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            className="absolute top-0 left-0 right-0 h-full bg-white bg-opacity-20 z-10"
+                          />
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+                
+                {/* Second location row */}
+                <div className="grid grid-cols-24 gap-0">
+                  {workingHours.map((hour) => {
+                    const time1Hour = hour;
+                    const time2Hour = (hour + hourDiff + 24) % 24;
+                    
+                    const isWorkingHour1 = time1Hour >= 9 && time1Hour <= 17;
+                    const isWorkingHour2 = time2Hour >= 9 && time2Hour <= 17;
+                    const isOverlap = isWorkingHour1 && isWorkingHour2;
+
+                    return (
+                      <div
+                        key={`loc2-${hour}`}
+                        className={`relative h-full cursor-pointer ${
+                          selectedHour === hour ? 'ring-2 ring-white' : ''
+                        }`}
+                        onMouseEnter={() => setHoveredHour(hour)}
+                        onMouseLeave={() => setHoveredHour(null)}
+                        onClick={() => setSelectedHour(hour)}
+                      >
+                        <div
+                          className={`h-full border-r border-gray-700 ${
+                            isWorkingHour2 ? 'bg-location2 bg-opacity-50' : 'bg-opacity-0'
+                          }`}
+                        />
+                        {showOverlaps && isOverlap && (
+                          <div className="absolute inset-0 bg-white bg-opacity-20" />
+                        )}
+                        {hoveredHour === hour && (
+                          <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            className="absolute top-0 left-0 right-0 h-full bg-white bg-opacity-20 z-10"
+                          />
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
+              
+              {/* Hover tooltip */}
+              {hoveredHour !== null && (
+                <div className="absolute -top-8 left-1/2 transform -translate-x-1/2 bg-gray-900 px-3 py-1 rounded text-sm whitespace-nowrap shadow-lg z-20">
+                  <span className={`font-mono tabular-nums ${
+                    hoveredHour >= 9 && hoveredHour <= 17 ? 'text-location1-bright' : 'text-location1'
+                  }`}>
+                    {time1.set({ hour: hoveredHour, minute: 0, second: 0 }).toFormat('h:00 a').padEnd(8, ' ')}
+                  </span>
+                  {' / '}
+                  <span className={`font-mono tabular-nums ${
+                    (hoveredHour + hourDiff + 24) % 24 >= 9 && (hoveredHour + hourDiff + 24) % 24 <= 17 ? 'text-location2-bright' : 'text-location2'
+                  }`}>
+                    {time2.set({ hour: (hoveredHour + hourDiff + 24) % 24, minute: 0, second: 0 }).toFormat('h:00 a').padEnd(8, ' ')}
+                  </span>
+                </div>
+              )}
             </div>
             
             <div className="absolute bottom-2 left-4 right-4 flex justify-between text-sm text-gray-400">
