@@ -1,8 +1,9 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { DateTime } from 'luxon';
 import { findTimezoneOption } from '@/app/utils/timezones';
+import { motion } from 'framer-motion';
 
 interface EmbeddableWidgetProps {
   timezone1?: string;
@@ -24,6 +25,7 @@ export default function EmbeddableWidget({
   compact = false
 }: EmbeddableWidgetProps) {
   const [currentTime, setCurrentTime] = useState<DateTime>(DateTime.now());
+  const [hoveredHour, setHoveredHour] = useState<number | null>(null);
   
   // Use provided labels or get from timezone data
   const tz1Label = label1 || findTimezoneOption(timezone1).label;
@@ -42,8 +44,55 @@ export default function EmbeddableWidget({
   const time1 = currentTime.setZone(timezone1);
   const time2 = currentTime.setZone(timezone2);
   
-  const timeFormat = compact ? 'h:mm a' : 'h:mm:ss a';
+  const timeFormat = 'h:mm a';
   const dateFormat = 'EEE, MMM d';
+  
+  // Calculate hour difference between timezones
+  const time1Hour = time1.hour + time1.minute / 60;
+  const time2Hour = time2.hour + time2.minute / 60;
+  const hourDiff = time2Hour - time1Hour;
+  
+  // Default working hours (9 AM to 5 PM for both locations)
+  const [workingHours1, setWorkingHours1] = useState(() => {
+    // Try to load from localStorage
+    if (typeof window !== 'undefined') {
+      try {
+        const saved = localStorage.getItem('workingHours1');
+        if (saved) {
+          return JSON.parse(saved);
+        }
+      } catch (e) {
+        console.error('Error reading from localStorage:', e);
+      }
+    }
+    return { start: 9, end: 17 };
+  });
+  
+  const [workingHours2, setWorkingHours2] = useState(() => {
+    // Try to load from localStorage
+    if (typeof window !== 'undefined') {
+      try {
+        const saved = localStorage.getItem('workingHours2');
+        if (saved) {
+          return JSON.parse(saved);
+        }
+      } catch (e) {
+        console.error('Error reading from localStorage:', e);
+      }
+    }
+    return { start: 9, end: 17 };
+  });
+  
+  // Generate time slots for the grid (hour increments)
+  const timeSlots = Array.from({ length: 24 }, (_, i) => i);
+  
+  // Get current time decimal for time indicator
+  const getCurrentTimeDecimal = useCallback(() => {
+    const now = time1;
+    return now.hour + now.minute / 60;
+  }, [time1]);
+  
+  const currentTimeDecimal = getCurrentTimeDecimal();
   
   const getBgClass = () => {
     return theme === 'dark' ? 'bg-gray-900 text-white' : 'bg-white text-gray-900';
@@ -56,7 +105,7 @@ export default function EmbeddableWidget({
   return (
     <div 
       className={`timezone-widget font-sans ${getBgClass()} border ${getBorderClass()} rounded-lg shadow overflow-hidden`}
-      style={{ maxWidth: compact ? '300px' : '400px' }}
+      style={{ maxWidth: compact ? '320px' : '400px' }}
     >
       <div className="p-3">
         <div className="flex justify-between items-center">
@@ -108,7 +157,170 @@ export default function EmbeddableWidget({
             </div>
           </div>
         </div>
+        
+        {/* Time Grid Visualization (Modern UX) */}
+        <div className={`mt-4 relative ${theme === 'dark' ? 'bg-gray-800' : 'bg-gray-50'} p-3 rounded`}>
+          <div className="min-h-[70px]">
+            {/* Time indicator line */}
+            <div 
+              className="absolute top-0 bottom-0 w-[2px] bg-red-500 z-20"
+              style={{ 
+                left: `${(currentTimeDecimal / 24) * 100}%`,
+                height: '100%'
+              }}
+            />
+            
+            {/* Time grid */}
+            <div className="relative h-[70px]">
+              {/* Timezone labels */}
+              <div className="absolute left-0 h-full grid grid-rows-2 text-xs z-10">
+                <div className={`flex items-center ${theme === 'dark' ? 'text-blue-300' : 'text-blue-600'}`}>
+                  <div className="w-2 h-2 rounded-full bg-blue-500 mr-1"></div>
+                  <span>{tz1Label.substring(0, compact ? 10 : 15)}</span>
+                </div>
+                <div className={`flex items-center ${theme === 'dark' ? 'text-purple-300' : 'text-purple-600'}`}>
+                  <div className="w-2 h-2 rounded-full bg-purple-500 mr-1"></div>
+                  <span>{tz2Label.substring(0, compact ? 10 : 15)}</span>
+                </div>
+              </div>
+              
+              <div className="ml-[70px]">
+                {/* First location row */}
+                <div className="grid grid-cols-[repeat(24,minmax(0,1fr))] gap-0 border-b border-gray-700 h-[35px]">
+                  {timeSlots.map((timeSlot) => {
+                    const time1HourDecimal = timeSlot;
+                    
+                    // Convert to hours for working hours check
+                    const time1TotalMinutes = time1HourDecimal * 60;
+                    
+                    // Convert working hours to total minutes for comparison
+                    const workingStart1 = workingHours1.start * 60;
+                    const workingEnd1 = workingHours1.end * 60;
+                    
+                    // Check if working hour
+                    const isWorkingHour1 = (
+                      workingHours1.start <= workingHours1.end
+                        ? time1TotalMinutes >= workingStart1 && time1TotalMinutes < workingEnd1
+                        : time1TotalMinutes >= workingStart1 || time1TotalMinutes < workingEnd1
+                    );
+
+                    return (
+                      <div
+                        key={`loc1-${timeSlot}`}
+                        className={`relative h-full ${timeSlot % 1 === 0 ? 'border-r border-gray-700/30' : ''}`}
+                        onMouseEnter={() => setHoveredHour(timeSlot)}
+                        onMouseLeave={() => setHoveredHour(null)}
+                      >
+                        <div
+                          className={`h-full ${
+                            isWorkingHour1 ? 'bg-blue-500/50' : 'bg-opacity-0'
+                          }`}
+                        />
+                        {hoveredHour === timeSlot && (
+                          <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            className="absolute top-0 left-0 right-0 h-full bg-white bg-opacity-20 z-10"
+                          />
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+                
+                {/* Second location row */}
+                <div className="grid grid-cols-[repeat(24,minmax(0,1fr))] gap-0 h-[35px]">
+                  {timeSlots.map((timeSlot) => {
+                    const time2HourDecimal = (timeSlot + hourDiff + 24) % 24;
+                    
+                    // Convert to hours for working hours check
+                    const time2TotalMinutes = time2HourDecimal * 60;
+                    
+                    // For overlap calculation, we also need time1 info for this slot
+                    const time1HourDecimal = timeSlot;
+                    const time1TotalMinutes = time1HourDecimal * 60;
+                    
+                    // Convert working hours to total minutes for comparison
+                    const workingStart2 = workingHours2.start * 60;
+                    const workingEnd2 = workingHours2.end * 60;
+                    const workingStart1 = workingHours1.start * 60;
+                    const workingEnd1 = workingHours1.end * 60;
+                    
+                    // Check if working hour
+                    const isWorkingHour2 = (
+                      workingHours2.start <= workingHours2.end
+                        ? time2TotalMinutes >= workingStart2 && time2TotalMinutes < workingEnd2
+                        : time2TotalMinutes >= workingStart2 || time2TotalMinutes < workingEnd2
+                    );
+                    
+                    // Check if there's overlap
+                    const isWorkingHour1 = (
+                      workingHours1.start <= workingHours1.end
+                        ? time1TotalMinutes >= workingStart1 && time1TotalMinutes < workingEnd1
+                        : time1TotalMinutes >= workingStart1 || time1TotalMinutes < workingEnd1
+                    );
+                    const isOverlap = isWorkingHour1 && isWorkingHour2;
+
+                    return (
+                      <div
+                        key={`loc2-${timeSlot}`}
+                        className={`relative h-full ${timeSlot % 1 === 0 ? 'border-r border-gray-700/30' : ''}`}
+                        onMouseEnter={() => setHoveredHour(timeSlot)}
+                        onMouseLeave={() => setHoveredHour(null)}
+                      >
+                        <div
+                          className={`h-full ${
+                            isWorkingHour2 ? 'bg-purple-500/50' : 'bg-opacity-0'
+                          }`}
+                        />
+                        {isOverlap && (
+                          <div className="absolute inset-0 bg-white bg-opacity-20" />
+                        )}
+                        {hoveredHour === timeSlot && (
+                          <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            className="absolute top-0 left-0 right-0 h-full bg-white bg-opacity-20 z-10"
+                          />
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+            
+            {/* Hover tooltip */}
+            {hoveredHour !== null && (
+              <div 
+                className={`absolute -top-8 transform bg-gray-800 px-2 py-1 rounded text-xs whitespace-nowrap shadow-lg z-20 ${theme === 'dark' ? 'text-white' : 'text-white'}`}
+                style={{ left: `${(hoveredHour / 24) * 100 + 70}px` }}
+              >
+                <span className="font-mono tabular-nums text-blue-300">
+                  {time1.set({ hour: Math.floor(hoveredHour), minute: 0, second: 0 }).toFormat('h:mm a')}
+                </span>
+                {' / '}
+                <span className="font-mono tabular-nums text-purple-300">
+                  {time2.set({ 
+                    hour: Math.floor((hoveredHour + hourDiff + 24) % 24), 
+                    minute: 0, 
+                    second: 0 
+                  }).toFormat('h:mm a')}
+                </span>
+              </div>
+            )}
+            
+            {/* Time markers */}
+            <div className={`absolute bottom-0 left-[70px] right-0 flex justify-between text-[10px] ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>
+              <span>12am</span>
+              <span>6am</span>
+              <span>12pm</span>
+              <span>6pm</span>
+              <span>12am</span>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );
-} 
+}

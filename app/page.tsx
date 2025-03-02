@@ -206,6 +206,40 @@ export default function Home() {
         const option = findTimezoneOption(savedTimezone2);
         if (option) setTimezone2(option);
       }
+      
+      // Load working hours from localStorage
+      const savedWorkingHours1 = localStorage.getItem('workingHours1');
+      const savedWorkingHours2 = localStorage.getItem('workingHours2');
+      
+      if (savedWorkingHours1) {
+        try {
+          setWorkingHours1(JSON.parse(savedWorkingHours1));
+        } catch (e) {
+          console.error('Error parsing workingHours1:', e);
+        }
+      }
+      
+      if (savedWorkingHours2) {
+        try {
+          setWorkingHours2(JSON.parse(savedWorkingHours2));
+        } catch (e) {
+          console.error('Error parsing workingHours2:', e);
+        }
+      }
+      
+      // Load selection state if available
+      const savedDragStart = localStorage.getItem('dragStartHour');
+      const savedDragEnd = localStorage.getItem('dragEndHour');
+      
+      if (savedDragStart && savedDragEnd) {
+        try {
+          setDragStartHour(parseFloat(savedDragStart));
+          setDragEndHour(parseFloat(savedDragEnd));
+        } catch (e) {
+          console.error('Error parsing selection state:', e);
+        }
+      }
+      
     } catch (e) {
       console.error('Error accessing localStorage:', e);
     }
@@ -233,6 +267,39 @@ export default function Home() {
       }
     }
   }, [timezone2, mounted]);
+
+  // Save working hours to localStorage when they change
+  useEffect(() => {
+    if (mounted) {
+      try {
+        localStorage.setItem('workingHours1', JSON.stringify(workingHours1));
+      } catch (e) {
+        console.error('Error saving workingHours1 to localStorage:', e);
+      }
+    }
+  }, [workingHours1, mounted]);
+  
+  useEffect(() => {
+    if (mounted) {
+      try {
+        localStorage.setItem('workingHours2', JSON.stringify(workingHours2));
+      } catch (e) {
+        console.error('Error saving workingHours2 to localStorage:', e);
+      }
+    }
+  }, [workingHours2, mounted]);
+  
+  // Save selection state to localStorage when it changes
+  useEffect(() => {
+    if (mounted && dragStartHour !== null && dragEndHour !== null) {
+      try {
+        localStorage.setItem('dragStartHour', dragStartHour.toString());
+        localStorage.setItem('dragEndHour', dragEndHour.toString());
+      } catch (e) {
+        console.error('Error saving selection to localStorage:', e);
+      }
+    }
+  }, [dragStartHour, dragEndHour, mounted]);
 
   // Change workingHours to half-hour intervals (48 slots instead of 24)
   const timeSlots = Array.from({ length: 48 }, (_, i) => i / 2);
