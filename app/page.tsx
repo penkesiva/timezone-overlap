@@ -502,7 +502,7 @@ export default function Home() {
                 />
               </Suspense>
               {/* Location 1 Info Card */}
-              <div className="bg-gray-800/50 dark:bg-gray-800 p-3 rounded-lg space-y-2">
+              <div className="bg-gray-800 dark:bg-gray-800 p-3 rounded-lg space-y-2">
                 <div className="flex items-center space-x-2">
                   <ClockIcon className="h-5 w-5 text-location1" />
                   <div>
@@ -557,7 +557,7 @@ export default function Home() {
                 />
               </Suspense>
               {/* Location 2 Info Card */}
-              <div className="bg-gray-800/50 dark:bg-gray-800 p-3 rounded-lg space-y-2">
+              <div className="bg-gray-800 dark:bg-gray-800 p-3 rounded-lg space-y-2">
                 <div className="flex items-center space-x-2">
                   <ClockIcon className="h-5 w-5 text-location2" />
                   <div>
