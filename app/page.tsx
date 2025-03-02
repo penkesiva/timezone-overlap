@@ -192,8 +192,47 @@ export default function Home() {
     updateTime();
     const interval = setInterval(updateTime, 1000);
     
+    // Load saved timezones from localStorage if available
+    try {
+      const savedTimezone1 = localStorage.getItem('timezone1');
+      const savedTimezone2 = localStorage.getItem('timezone2');
+      
+      if (savedTimezone1) {
+        const option = findTimezoneOption(savedTimezone1);
+        if (option) setTimezone1(option);
+      }
+      
+      if (savedTimezone2) {
+        const option = findTimezoneOption(savedTimezone2);
+        if (option) setTimezone2(option);
+      }
+    } catch (e) {
+      console.error('Error accessing localStorage:', e);
+    }
+    
     return () => clearInterval(interval);
   }, []);
+
+  // Save timezone selections to localStorage when they change
+  useEffect(() => {
+    if (mounted) {
+      try {
+        localStorage.setItem('timezone1', timezone1.value);
+      } catch (e) {
+        console.error('Error saving to localStorage:', e);
+      }
+    }
+  }, [timezone1, mounted]);
+  
+  useEffect(() => {
+    if (mounted) {
+      try {
+        localStorage.setItem('timezone2', timezone2.value);
+      } catch (e) {
+        console.error('Error saving to localStorage:', e);
+      }
+    }
+  }, [timezone2, mounted]);
 
   // Change workingHours to half-hour intervals (48 slots instead of 24)
   const timeSlots = Array.from({ length: 48 }, (_, i) => i / 2);

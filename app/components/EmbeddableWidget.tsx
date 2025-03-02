@@ -60,14 +60,14 @@ export default function EmbeddableWidget({
     >
       <div className="p-3">
         <div className="flex justify-between items-center">
-          <h3 className={`text-sm font-medium ${theme === 'dark' ? 'text-gray-300' : 'text-gray-500'}`}>
+          <h3 className={`text-sm font-medium ${theme === 'dark' ? 'text-gray-200' : 'text-gray-500'}`}>
             Timezone Comparison
           </h3>
           <a 
             href="https://timezoneoverlap.net" 
             target="_blank" 
             rel="noopener noreferrer"
-            className={`text-xs ${theme === 'dark' ? 'text-blue-400' : 'text-blue-600'} hover:underline`}
+            className={`text-xs ${theme === 'dark' ? 'text-blue-300 hover:text-blue-200' : 'text-blue-600 hover:text-blue-700'} hover:underline`}
           >
             timezoneoverlap.net
           </a>
@@ -77,14 +77,14 @@ export default function EmbeddableWidget({
           {/* First Timezone */}
           <div className={`p-2 rounded ${theme === 'dark' ? 'bg-gray-800' : 'bg-gray-50'}`}>
             <div className="flex flex-col">
-              <span className={`text-xs font-medium ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
+              <span className={`text-xs font-medium ${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'}`}>
                 {tz1Label}
               </span>
-              <span className="text-lg font-bold">
+              <span className={`text-lg font-bold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
                 {time1.toFormat(timeFormat)}
               </span>
               {showDate && (
-                <span className={`text-xs mt-1 ${theme === 'dark' ? 'text-gray-500' : 'text-gray-500'}`}>
+                <span className={`text-xs mt-1 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>
                   {time1.toFormat(dateFormat)}
                 </span>
               )}
@@ -94,14 +94,14 @@ export default function EmbeddableWidget({
           {/* Second Timezone */}
           <div className={`p-2 rounded ${theme === 'dark' ? 'bg-gray-800' : 'bg-gray-50'}`}>
             <div className="flex flex-col">
-              <span className={`text-xs font-medium ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
+              <span className={`text-xs font-medium ${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'}`}>
                 {tz2Label}
               </span>
-              <span className="text-lg font-bold">
+              <span className={`text-lg font-bold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
                 {time2.toFormat(timeFormat)}
               </span>
               {showDate && (
-                <span className={`text-xs mt-1 ${theme === 'dark' ? 'text-gray-500' : 'text-gray-500'}`}>
+                <span className={`text-xs mt-1 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>
                   {time2.toFormat(dateFormat)}
                 </span>
               )}
