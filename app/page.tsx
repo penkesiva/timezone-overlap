@@ -566,6 +566,22 @@ export default function Home() {
     return slots;
   };
 
+  // Format working hours
+  const formatWorkingHours = (hour: number) => {
+    // Convert 24-hour format to 12-hour format with AM/PM
+    let period = 'AM';
+    let hour12 = hour;
+    
+    if (hour >= 12) {
+      period = 'PM';
+      hour12 = hour === 12 ? 12 : hour - 12;
+    } else if (hour === 0) {
+      hour12 = 12;
+    }
+    
+    return `${hour12}:00 ${period}`;
+  };
+
   if (!mounted) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -576,9 +592,24 @@ export default function Home() {
 
   return (
     <main className="container relative mx-auto px-4 py-8 min-h-screen">
-      <h1 className="text-4xl font-bold text-center mb-8 text-transparent bg-clip-text bg-gradient-to-r from-gray-800 to-gray-900 dark:from-location1-bright dark:to-location2-bright pt-12 md:pt-0">
-        TimeZone Overlap
-      </h1>
+      <div className="flex flex-col items-center justify-between mb-8 md:flex-row">
+        <div>
+          <h1 className="text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-gray-800 to-gray-900 dark:from-location1-bright dark:to-location2-bright pt-12 md:pt-0">
+            TimeZone Overlap
+          </h1>
+          <p className="text-sm font-medium text-gray-500 dark:text-gray-400 mt-2">
+            Compare time zones and find overlapping working hours
+          </p>
+        </div>
+        <a 
+          href="https://github.com/penkesiva/timezone-overlap" 
+          target="_blank" 
+          rel="noopener noreferrer"
+          className="text-sm text-blue-600 dark:text-blue-300 hover:underline mt-4 md:mt-0"
+        >
+          View on GitHub
+        </a>
+      </div>
 
       {/* Top banner ad */}
       <Suspense fallback={<div className="h-[90px] bg-gray-800/50 rounded-lg" />}>
@@ -633,7 +664,7 @@ export default function Home() {
                       type="text"
                       className="w-20 px-2 py-1 bg-gray-700 text-white text-sm rounded"
                       placeholder="9:00 AM"
-                      defaultValue="9:00 AM"
+                      value={formatWorkingHours(workingHours1.start)}
                       onChange={(e) => handleWorkingHoursChange(1, 'start', e.target.value)}
                     />
                     <span className="text-gray-400">to</span>
@@ -641,7 +672,7 @@ export default function Home() {
                       type="text"
                       className="w-20 px-2 py-1 bg-gray-700 text-white text-sm rounded"
                       placeholder="5:00 PM"
-                      defaultValue="5:00 PM"
+                      value={formatWorkingHours(workingHours1.end)}
                       onChange={(e) => handleWorkingHoursChange(1, 'end', e.target.value)}
                     />
                   </div>
@@ -688,7 +719,7 @@ export default function Home() {
                       type="text"
                       className="w-20 px-2 py-1 bg-gray-700 text-white text-sm rounded"
                       placeholder="9:00 AM"
-                      defaultValue="9:00 AM"
+                      value={formatWorkingHours(workingHours2.start)}
                       onChange={(e) => handleWorkingHoursChange(2, 'start', e.target.value)}
                     />
                     <span className="text-gray-400">to</span>
@@ -696,7 +727,7 @@ export default function Home() {
                       type="text"
                       className="w-20 px-2 py-1 bg-gray-700 text-white text-sm rounded"
                       placeholder="5:00 PM"
-                      defaultValue="5:00 PM"
+                      value={formatWorkingHours(workingHours2.end)}
                       onChange={(e) => handleWorkingHoursChange(2, 'end', e.target.value)}
                     />
                   </div>
