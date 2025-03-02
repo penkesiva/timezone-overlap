@@ -13,6 +13,11 @@ interface EmbeddableWidgetProps {
   theme?: 'light' | 'dark';
   showDate?: boolean;
   compact?: boolean;
+  workingHours1Start?: number;
+  workingHours1End?: number;
+  workingHours2Start?: number;
+  workingHours2End?: number;
+  showWorkingHours?: boolean;
 }
 
 export default function EmbeddableWidget({
@@ -22,7 +27,12 @@ export default function EmbeddableWidget({
   label2 = '',
   theme = 'light',
   showDate = true,
-  compact = false
+  compact = false,
+  workingHours1Start = 9,
+  workingHours1End = 17,
+  workingHours2Start = 9,
+  workingHours2End = 17,
+  showWorkingHours = true
 }: EmbeddableWidgetProps) {
   const [currentTime, setCurrentTime] = useState<DateTime>(DateTime.now());
   const [hoveredHour, setHoveredHour] = useState<number | null>(null);
@@ -52,9 +62,14 @@ export default function EmbeddableWidget({
   const time2Hour = time2.hour + time2.minute / 60;
   const hourDiff = time2Hour - time1Hour;
   
-  // Default working hours (9 AM to 5 PM for both locations)
+  // Use provided working hours or load from localStorage
   const [workingHours1, setWorkingHours1] = useState(() => {
-    // Try to load from localStorage
+    // If props are provided, use them
+    if (workingHours1Start !== undefined && workingHours1End !== undefined) {
+      return { start: workingHours1Start, end: workingHours1End };
+    }
+    
+    // Otherwise try to load from localStorage
     if (typeof window !== 'undefined') {
       try {
         const saved = localStorage.getItem('workingHours1');
@@ -69,7 +84,12 @@ export default function EmbeddableWidget({
   });
   
   const [workingHours2, setWorkingHours2] = useState(() => {
-    // Try to load from localStorage
+    // If props are provided, use them
+    if (workingHours2Start !== undefined && workingHours2End !== undefined) {
+      return { start: workingHours2Start, end: workingHours2End };
+    }
+    
+    // Otherwise try to load from localStorage
     if (typeof window !== 'undefined') {
       try {
         const saved = localStorage.getItem('workingHours2');
@@ -82,6 +102,17 @@ export default function EmbeddableWidget({
     }
     return { start: 9, end: 17 };
   });
+  
+  // Update working hours when props change
+  useEffect(() => {
+    if (workingHours1Start !== undefined && workingHours1End !== undefined) {
+      setWorkingHours1({ start: workingHours1Start, end: workingHours1End });
+    }
+    
+    if (workingHours2Start !== undefined && workingHours2End !== undefined) {
+      setWorkingHours2({ start: workingHours2Start, end: workingHours2End });
+    }
+  }, [workingHours1Start, workingHours1End, workingHours2Start, workingHours2End]);
   
   // Generate time slots for the grid (hour increments)
   const timeSlots = Array.from({ length: 24 }, (_, i) => i);
@@ -100,6 +131,50 @@ export default function EmbeddableWidget({
   
   const getBorderClass = () => {
     return theme === 'dark' ? 'border-gray-700' : 'border-gray-200';
+  };
+  
+  // Calculate if two working hours overlap at a given hour
+  const isOverlapping = (hour: number) => {
+    if (!showWorkingHours) return false;
+    
+    // Convert to total minutes for both locations
+    const time1TotalMinutes = hour * 60;
+    const time2HourDecimal = (hour + hourDiff + 24) % 24;
+    const time2TotalMinutes = time2HourDecimal * 60;
+    
+    // Convert working hours to total minutes
+    const workingStart1 = workingHours1.start * 60;
+    const workingEnd1 = workingHours1.end * 60;
+    const workingStart2 = workingHours2.start * 60;
+    const workingEnd2 = workingHours2.end * 60;
+    
+    // Check if both are working hours
+    const isWorkingHour1 = (
+      workingHours1.start <= workingHours1.end
+        ? time1TotalMinutes >= workingStart1 && time1TotalMinutes < workingEnd1
+        : time1TotalMinutes >= workingStart1 || time1TotalMinutes < workingEnd1
+    );
+    
+    const isWorkingHour2 = (
+      workingHours2.start <= workingHours2.end
+        ? time2TotalMinutes >= workingStart2 && time2TotalMinutes < workingEnd2
+        : time2TotalMinutes >= workingStart2 || time2TotalMinutes < workingEnd2
+    );
+    
+    return isWorkingHour1 && isWorkingHour2;
+  };
+  
+  // Determine colors based on theme
+  const getLocation1Color = () => {
+    return theme === 'dark' ? 'bg-blue-500/50' : 'bg-blue-200';
+  };
+  
+  const getLocation2Color = () => {
+    return theme === 'dark' ? 'bg-purple-500/50' : 'bg-purple-200';
+  };
+  
+  const getOverlapColor = () => {
+    return theme === 'dark' ? 'bg-green-500/50' : 'bg-green-200';
   };
   
   return (
@@ -198,11 +273,13 @@ export default function EmbeddableWidget({
                     const workingEnd1 = workingHours1.end * 60;
                     
                     // Check if working hour
-                    const isWorkingHour1 = (
+                    const isWorkingHour1 = showWorkingHours && (
                       workingHours1.start <= workingHours1.end
                         ? time1TotalMinutes >= workingStart1 && time1TotalMinutes < workingEnd1
                         : time1TotalMinutes >= workingStart1 || time1TotalMinutes < workingEnd1
                     );
+                    
+                    const isOverlap = isOverlapping(timeSlot);
 
                     return (
                       <div
@@ -213,7 +290,7 @@ export default function EmbeddableWidget({
                       >
                         <div
                           className={`h-full ${
-                            isWorkingHour1 ? 'bg-blue-500/50' : 'bg-opacity-0'
+                            isOverlap ? getOverlapColor() : isWorkingHour1 ? getLocation1Color() : 'bg-opacity-0'
                           }`}
                         />
                         {hoveredHour === timeSlot && (
@@ -247,19 +324,13 @@ export default function EmbeddableWidget({
                     const workingEnd1 = workingHours1.end * 60;
                     
                     // Check if working hour
-                    const isWorkingHour2 = (
+                    const isWorkingHour2 = showWorkingHours && (
                       workingHours2.start <= workingHours2.end
                         ? time2TotalMinutes >= workingStart2 && time2TotalMinutes < workingEnd2
                         : time2TotalMinutes >= workingStart2 || time2TotalMinutes < workingEnd2
                     );
                     
-                    // Check if there's overlap
-                    const isWorkingHour1 = (
-                      workingHours1.start <= workingHours1.end
-                        ? time1TotalMinutes >= workingStart1 && time1TotalMinutes < workingEnd1
-                        : time1TotalMinutes >= workingStart1 || time1TotalMinutes < workingEnd1
-                    );
-                    const isOverlap = isWorkingHour1 && isWorkingHour2;
+                    const isOverlap = isOverlapping(timeSlot);
 
                     return (
                       <div
@@ -270,12 +341,9 @@ export default function EmbeddableWidget({
                       >
                         <div
                           className={`h-full ${
-                            isWorkingHour2 ? 'bg-purple-500/50' : 'bg-opacity-0'
+                            isOverlap ? getOverlapColor() : isWorkingHour2 ? getLocation2Color() : 'bg-opacity-0'
                           }`}
                         />
-                        {isOverlap && (
-                          <div className="absolute inset-0 bg-white bg-opacity-20" />
-                        )}
                         {hoveredHour === timeSlot && (
                           <motion.div
                             initial={{ opacity: 0 }}
@@ -290,33 +358,33 @@ export default function EmbeddableWidget({
               </div>
             </div>
             
-            {/* Hover tooltip */}
-            {hoveredHour !== null && (
-              <div 
-                className={`absolute -top-8 transform bg-gray-800 px-2 py-1 rounded text-xs whitespace-nowrap shadow-lg z-20 ${theme === 'dark' ? 'text-white' : 'text-white'}`}
-                style={{ left: `${(hoveredHour / 24) * 100 + 70}px` }}
-              >
-                <span className="font-mono tabular-nums text-blue-300">
-                  {time1.set({ hour: Math.floor(hoveredHour), minute: 0, second: 0 }).toFormat('h:mm a')}
-                </span>
-                {' / '}
-                <span className="font-mono tabular-nums text-purple-300">
-                  {time2.set({ 
-                    hour: Math.floor((hoveredHour + hourDiff + 24) % 24), 
-                    minute: 0, 
-                    second: 0 
-                  }).toFormat('h:mm a')}
-                </span>
+            {/* Add legend for the working hours colors if showing working hours */}
+            {showWorkingHours && (
+              <div className="mt-2 pt-2 border-t border-gray-700 grid grid-cols-3 gap-2 text-xs">
+                <div className="flex items-center">
+                  <div className={`w-3 h-3 mr-1 rounded ${getLocation1Color()}`}></div>
+                  <span className={theme === 'dark' ? 'text-gray-300' : 'text-gray-600'}>
+                    {tz1Label.split(' - ')[0]} hours
+                  </span>
+                </div>
+                <div className="flex items-center">
+                  <div className={`w-3 h-3 mr-1 rounded ${getLocation2Color()}`}></div>
+                  <span className={theme === 'dark' ? 'text-gray-300' : 'text-gray-600'}>
+                    {tz2Label.split(' - ')[0]} hours
+                  </span>
+                </div>
+                <div className="flex items-center">
+                  <div className={`w-3 h-3 mr-1 rounded ${getOverlapColor()}`}></div>
+                  <span className={theme === 'dark' ? 'text-gray-300' : 'text-gray-600'}>Overlap</span>
+                </div>
               </div>
             )}
             
-            {/* Time markers */}
-            <div className={`absolute bottom-0 left-[70px] right-0 flex justify-between text-[10px] ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>
-              <span>12am</span>
-              <span>6am</span>
-              <span>12pm</span>
-              <span>6pm</span>
-              <span>12am</span>
+            {/* Time indicators at bottom */}
+            <div className="absolute bottom-0 left-0 right-0 flex justify-between text-[10px] text-gray-400 mt-1 ml-[70px]">
+              <span>12 AM</span>
+              <span>12 PM</span>
+              <span>11 PM</span>
             </div>
           </div>
         </div>

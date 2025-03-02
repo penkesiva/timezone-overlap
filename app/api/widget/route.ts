@@ -28,6 +28,13 @@ export async function GET(request: Request) {
   const showDate = currentScript.getAttribute('data-show-date') !== 'false';
   const compact = currentScript.getAttribute('data-compact') === 'true';
   
+  // Get working hours configuration
+  const workingHours1Start = parseInt(currentScript.getAttribute('data-working-hours1-start') || '9', 10);
+  const workingHours1End = parseInt(currentScript.getAttribute('data-working-hours1-end') || '17', 10);
+  const workingHours2Start = parseInt(currentScript.getAttribute('data-working-hours2-start') || '9', 10);
+  const workingHours2End = parseInt(currentScript.getAttribute('data-working-hours2-end') || '17', 10);
+  const showWorkingHours = currentScript.getAttribute('data-show-working-hours') !== 'false';
+  
   // Replace the script with the container
   currentScript.parentNode.insertBefore(container, currentScript);
   
@@ -45,7 +52,12 @@ export async function GET(request: Request) {
       '&label2=' + encodeURIComponent(label2) +
       '&theme=' + encodeURIComponent(theme) +
       '&showDate=' + (showDate ? 'true' : 'false') +
-      '&compact=' + (compact ? 'true' : 'false')
+      '&compact=' + (compact ? 'true' : 'false') +
+      '&workingHours1Start=' + workingHours1Start +
+      '&workingHours1End=' + workingHours1End +
+      '&workingHours2Start=' + workingHours2Start +
+      '&workingHours2End=' + workingHours2End +
+      '&showWorkingHours=' + (showWorkingHours ? 'true' : 'false')
     )
     .then(response => response.text())
     .then(html => {
