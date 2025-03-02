@@ -104,7 +104,7 @@ export default function LocationWeather({ locationName, timezone, className = ''
     return (
       <div className={`flex items-center space-x-1 ${className}`}>
         <CloudIcon className="h-5 w-5 text-gray-400" />
-        <span className="text-xs text-gray-400">Weather unavailable</span>
+        <span className="text-xs text-gray-400">NA</span>
       </div>
     );
   }
@@ -122,7 +122,7 @@ export default function LocationWeather({ locationName, timezone, className = ''
     return (
       <div className={`flex items-center space-x-1 ${className}`}>
         <CloudIcon className="h-5 w-5 text-gray-400" />
-        <span className="text-xs text-gray-400">Weather unavailable</span>
+        <span className="text-xs text-gray-400">NA</span>
       </div>
     );
   }
