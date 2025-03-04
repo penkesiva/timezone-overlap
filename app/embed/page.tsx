@@ -13,18 +13,22 @@ export default function EmbedPage() {
   // Widget configuration state
   const [timezone1, setTimezone1] = useState<string>('America/New_York');
   const [timezone2, setTimezone2] = useState<string>('Asia/Kolkata');
+  const [timezone3, setTimezone3] = useState<string>('Europe/London');
   const [label1, setLabel1] = useState<string>('');
   const [label2, setLabel2] = useState<string>('');
+  const [label3, setLabel3] = useState<string>('');
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
   const [showDate, setShowDate] = useState<boolean>(true);
   const [compact, setCompact] = useState<boolean>(false);
   const [copied, setCopied] = useState<boolean>(false);
   const [origin, setOrigin] = useState<string>('');
   const [mounted, setMounted] = useState<boolean>(false);
+  const [showThirdTimezone, setShowThirdTimezone] = useState<boolean>(false);
   
   // Add working hours state
   const [workingHours1, setWorkingHours1] = useState({ start: 9, end: 17 });
   const [workingHours2, setWorkingHours2] = useState({ start: 9, end: 17 });
+  const [workingHours3, setWorkingHours3] = useState({ start: 9, end: 17 });
   const [showWorkingHours, setShowWorkingHours] = useState<boolean>(true);
   
   // Add meeting time state
@@ -40,6 +44,7 @@ export default function EmbedPage() {
     try {
       const savedTimezone1 = localStorage.getItem('timezone1');
       const savedTimezone2 = localStorage.getItem('timezone2');
+      const savedTimezone3 = localStorage.getItem('timezone3');
       
       if (savedTimezone1) {
         setTimezone1(savedTimezone1);
@@ -47,6 +52,10 @@ export default function EmbedPage() {
       
       if (savedTimezone2) {
         setTimezone2(savedTimezone2);
+      }
+      
+      if (savedTimezone3) {
+        setTimezone3(savedTimezone3);
       }
       
       // Load theme preference
@@ -58,6 +67,7 @@ export default function EmbedPage() {
       // Load working hours
       const savedWorkingHours1 = localStorage.getItem('workingHours1');
       const savedWorkingHours2 = localStorage.getItem('workingHours2');
+      const savedWorkingHours3 = localStorage.getItem('workingHours3');
       
       if (savedWorkingHours1) {
         try {
@@ -72,6 +82,14 @@ export default function EmbedPage() {
           setWorkingHours2(JSON.parse(savedWorkingHours2));
         } catch (e) {
           console.error('Error parsing workingHours2:', e);
+        }
+      }
+      
+      if (savedWorkingHours3) {
+        try {
+          setWorkingHours3(JSON.parse(savedWorkingHours3));
+        } catch (e) {
+          console.error('Error parsing workingHours3:', e);
         }
       }
     } catch (e) {
@@ -107,8 +125,10 @@ export default function EmbedPage() {
   src="${origin}/api/widget?origin=${encodeURIComponent(origin)}"
   data-timezone1="${timezone1}"
   data-timezone2="${timezone2}"
+  data-timezone3="${timezone3}"
   data-label1="${label1}"
   data-label2="${label2}"
+  data-label3="${label3}"
   data-theme="${theme}"
   data-show-date="${showDate}"
   data-compact="${compact}"
@@ -116,6 +136,8 @@ export default function EmbedPage() {
   data-working-hours1-end="${workingHours1.end}"
   data-working-hours2-start="${workingHours2.start}"
   data-working-hours2-end="${workingHours2.end}"
+  data-working-hours3-start="${workingHours3.start}"
+  data-working-hours3-end="${workingHours3.end}"
   data-show-working-hours="${showWorkingHours}"
   data-meeting-time-start="${meetingTime.start}"
   data-meeting-time-end="${meetingTime.end}"
@@ -158,6 +180,19 @@ export default function EmbedPage() {
     }
   };
 
+  // Handle selection change for timezone3
+  const handleTimezone3Change = (selected: any) => {
+    if (selected && selected.value) {
+      setTimezone3(selected.value);
+      // Save to localStorage for persistence between pages
+      try {
+        localStorage.setItem('timezone3', selected.value);
+      } catch (e) {
+        console.error('Error saving to localStorage:', e);
+      }
+    }
+  };
+
   // Find the current timezone option for timezone1
   const findTimezone1Option = () => {
     return timezoneOptions.find(option => option.value === timezone1) || null;
@@ -166,6 +201,11 @@ export default function EmbedPage() {
   // Find the current timezone option for timezone2
   const findTimezone2Option = () => {
     return timezoneOptions.find(option => option.value === timezone2) || null;
+  };
+
+  // Find the current timezone option for timezone3
+  const findTimezone3Option = () => {
+    return timezoneOptions.find(option => option.value === timezone3) || null;
   };
   
   // Format working hours (12-hour format with AM/PM)
@@ -185,7 +225,7 @@ export default function EmbedPage() {
   };
 
   // Handle working hours input change
-  const handleWorkingHoursChange = (location: 1 | 2, type: 'start' | 'end', value: string) => {
+  const handleWorkingHoursChange = (location: 1 | 2 | 3, type: 'start' | 'end', value: string) => {
     // Parse the input time (e.g., "9:00 AM") to 24-hour format hour number
     try {
       let hourValue: number;
@@ -228,13 +268,23 @@ export default function EmbedPage() {
         } catch (e) {
           console.error('Error saving to localStorage:', e);
         }
-      } else {
+      } else if (location === 2) {
         const newWorkingHours = {...workingHours2, [type]: hourValue};
         setWorkingHours2(newWorkingHours);
         
         // Save to localStorage
         try {
           localStorage.setItem('workingHours2', JSON.stringify(newWorkingHours));
+        } catch (e) {
+          console.error('Error saving to localStorage:', e);
+        }
+      } else {
+        const newWorkingHours = {...workingHours3, [type]: hourValue};
+        setWorkingHours3(newWorkingHours);
+        
+        // Save to localStorage
+        try {
+          localStorage.setItem('workingHours3', JSON.stringify(newWorkingHours));
         } catch (e) {
           console.error('Error saving to localStorage:', e);
         }
@@ -481,6 +531,129 @@ export default function EmbedPage() {
               {/* Divider */}
               <div className="my-4 border-t border-gray-200 dark:border-gray-700 opacity-50"></div>
               
+              {/* Timezone 3 Selection */}
+              <div>
+                <div className="flex justify-between items-center mb-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-200">
+                    Third Timezone
+                  </label>
+                  <div className="flex items-center">
+                    <label className="inline-flex items-center cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={showThirdTimezone}
+                        onChange={() => setShowThirdTimezone(!showThirdTimezone)}
+                        className="sr-only peer"
+                      />
+                      <div className="relative w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
+                      <span className="ms-3 text-sm font-medium text-gray-700 dark:text-gray-300">
+                        {showThirdTimezone ? 'Enabled' : 'Disabled'}
+                      </span>
+                    </label>
+                  </div>
+                </div>
+                <Select
+                  options={formatGroupOptions()}
+                  onChange={handleTimezone3Change}
+                  value={findTimezone3Option()}
+                  className="basic-select"
+                  classNamePrefix="select"
+                  isDisabled={!showThirdTimezone}
+                  styles={{
+                    control: (base) => ({
+                      ...base,
+                      backgroundColor: theme === 'dark' ? '#374151' : base.backgroundColor,
+                      borderColor: theme === 'dark' ? '#4B5563' : base.borderColor,
+                    }),
+                    option: (base, state) => ({
+                      ...base,
+                      backgroundColor: theme === 'dark' 
+                        ? (state.isSelected ? '#2563EB' : (state.isFocused ? '#4B5563' : '#1F2937'))
+                        : (state.isSelected ? base.backgroundColor : (state.isFocused ? '#F3F4F6' : base.backgroundColor)),
+                      color: theme === 'dark' ? '#F9FAFB' : base.color,
+                    }),
+                    menu: (base) => ({
+                      ...base,
+                      backgroundColor: theme === 'dark' ? '#1F2937' : base.backgroundColor,
+                    }),
+                    singleValue: (base) => ({
+                      ...base,
+                      color: theme === 'dark' ? '#F9FAFB' : base.color,
+                    }),
+                    input: (base) => ({
+                      ...base,
+                      color: theme === 'dark' ? '#F9FAFB' : base.color,
+                    }),
+                    placeholder: (base) => ({
+                      ...base,
+                      color: theme === 'dark' ? '#9CA3AF' : base.color,
+                    }),
+                    multiValue: (base) => ({
+                      ...base,
+                      backgroundColor: theme === 'dark' ? '#4B5563' : base.backgroundColor,
+                    }),
+                    multiValueLabel: (base) => ({
+                      ...base,
+                      color: theme === 'dark' ? '#F9FAFB' : base.color,
+                    }),
+                    multiValueRemove: (base) => ({
+                      ...base,
+                      color: theme === 'dark' ? '#D1D5DB' : base.color,
+                      ':hover': {
+                        backgroundColor: theme === 'dark' ? '#6B7280' : (base[':hover']?.backgroundColor || '#f8f9fa'),
+                        color: theme === 'dark' ? '#F3F4F6' : (base[':hover']?.color || '#212529'),
+                      },
+                    }),
+                  }}
+                />
+              </div>
+              
+              {/* Custom Label 3 and Working Hours 3 */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
+                    Custom Label (optional)
+                  </label>
+                  <input
+                    type="text"
+                    value={label3}
+                    onChange={e => setLabel3(e.target.value)}
+                    className="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:text-white sm:text-sm p-2 border"
+                    placeholder="Max 8 chars"
+                    maxLength={8}
+                    disabled={!showThirdTimezone}
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
+                    Working Hours - {label3 || findTimezone3Option()?.label.split(' - ')[0] || 'UK'}
+                  </label>
+                  <div className="flex space-x-2 items-center">
+                    <input
+                      type="text"
+                      className="w-24 px-2 py-1 rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:text-white sm:text-sm border"
+                      placeholder="9:00 AM"
+                      value={formatWorkingHours(workingHours3.start)}
+                      onChange={(e) => handleWorkingHoursChange(3, 'start', e.target.value)}
+                      disabled={!showThirdTimezone}
+                    />
+                    <span className="text-gray-500 dark:text-gray-400">to</span>
+                    <input
+                      type="text"
+                      className="w-24 px-2 py-1 rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:text-white sm:text-sm border"
+                      placeholder="5:00 PM"
+                      value={formatWorkingHours(workingHours3.end)}
+                      onChange={(e) => handleWorkingHoursChange(3, 'end', e.target.value)}
+                      disabled={!showThirdTimezone}
+                    />
+                  </div>
+                </div>
+              </div>
+              
+              {/* Divider */}
+              <div className="my-4 border-t border-gray-200 dark:border-gray-700 opacity-50"></div>
+              
               {/* Meeting Time Configuration */}
               <div>
                 <label className="block text-base font-medium text-amber-500 dark:text-amber-300 mb-2">
@@ -634,8 +807,10 @@ export default function EmbedPage() {
                 <EmbeddableWidget 
                   timezone1={timezone1}
                   timezone2={timezone2}
+                  timezone3={timezone3}
                   label1={label1}
                   label2={label2}
+                  label3={label3}
                   theme={theme}
                   showDate={showDate}
                   compact={compact}
@@ -643,10 +818,13 @@ export default function EmbedPage() {
                   workingHours1End={workingHours1.end}
                   workingHours2Start={workingHours2.start}
                   workingHours2End={workingHours2.end}
+                  workingHours3Start={workingHours3.start}
+                  workingHours3End={workingHours3.end}
                   showWorkingHours={showWorkingHours}
                   meetingTimeStart={meetingTime.start}
                   meetingTimeEnd={meetingTime.end}
                   showMeetingTime={showMeetingTime}
+                  showThirdTimezone={showThirdTimezone}
                 />
               )}
             </div>

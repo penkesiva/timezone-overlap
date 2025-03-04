@@ -8,8 +8,10 @@ import { motion } from 'framer-motion';
 interface EmbeddableWidgetProps {
   timezone1?: string;
   timezone2?: string;
+  timezone3?: string;
   label1?: string;
   label2?: string;
+  label3?: string;
   theme?: 'light' | 'dark';
   showDate?: boolean;
   compact?: boolean;
@@ -17,17 +19,22 @@ interface EmbeddableWidgetProps {
   workingHours1End?: number;
   workingHours2Start?: number;
   workingHours2End?: number;
+  workingHours3Start?: number;
+  workingHours3End?: number;
   showWorkingHours?: boolean;
   meetingTimeStart?: number;
   meetingTimeEnd?: number;
   showMeetingTime?: boolean;
+  showThirdTimezone?: boolean;
 }
 
 export default function EmbeddableWidget({
   timezone1 = 'America/New_York',
   timezone2 = 'Asia/Kolkata',
+  timezone3 = 'Europe/London',
   label1 = '',
   label2 = '',
+  label3 = '',
   theme = 'light',
   showDate = true,
   compact = false,
@@ -35,10 +42,13 @@ export default function EmbeddableWidget({
   workingHours1End = 17,
   workingHours2Start = 9,
   workingHours2End = 17,
+  workingHours3Start = 9,
+  workingHours3End = 17,
   showWorkingHours = true,
   meetingTimeStart = 13,
   meetingTimeEnd = 14,
-  showMeetingTime = true
+  showMeetingTime = true,
+  showThirdTimezone = false
 }: EmbeddableWidgetProps) {
   const [currentTime, setCurrentTime] = useState<DateTime>(DateTime.now());
   const [hoveredHour, setHoveredHour] = useState<number | null>(null);
@@ -78,10 +88,12 @@ export default function EmbeddableWidget({
   // Use provided labels or get from timezone data
   const tz1Label = label1 || findTimezoneOption(timezone1).label;
   const tz2Label = label2 || findTimezoneOption(timezone2).label;
+  const tz3Label = label3 || findTimezoneOption(timezone3).label;
   
   // Limit location labels to 8 characters
   const shortTz1Label = tz1Label.substring(0, 8);
   const shortTz2Label = tz2Label.substring(0, 8);
+  const shortTz3Label = tz3Label.substring(0, 8);
   
   // Update time every minute
   useEffect(() => {
@@ -95,6 +107,7 @@ export default function EmbeddableWidget({
   // Format the times
   const time1 = currentTime.setZone(timezone1);
   const time2 = currentTime.setZone(timezone2);
+  const time3 = currentTime.setZone(timezone3);
   
   const timeFormat = 'h:mm a';
   const shortTimeFormat = 'h a'; // Shorter format for meeting times (without minutes)
@@ -103,6 +116,7 @@ export default function EmbeddableWidget({
   // Calculate hour difference between timezones
   const time1Hour = time1.hour + time1.minute / 60;
   const time2Hour = time2.hour + time2.minute / 60;
+  const time3Hour = time3.hour + time3.minute / 60;
   const hourDiff = time2Hour - time1Hour;
   
   // Use provided working hours or load from localStorage
@@ -146,6 +160,26 @@ export default function EmbeddableWidget({
     return { start: 9, end: 17 };
   });
   
+  const [workingHours3, setWorkingHours3] = useState(() => {
+    // If props are provided, use them
+    if (workingHours3Start !== undefined && workingHours3End !== undefined) {
+      return { start: workingHours3Start, end: workingHours3End };
+    }
+    
+    // Otherwise try to load from localStorage
+    if (typeof window !== 'undefined') {
+      try {
+        const saved = localStorage.getItem('workingHours3');
+        if (saved) {
+          return JSON.parse(saved);
+        }
+      } catch (e) {
+        console.error('Error reading from localStorage:', e);
+      }
+    }
+    return { start: 9, end: 17 };
+  });
+  
   // Update working hours when props change
   useEffect(() => {
     if (workingHours1Start !== undefined && workingHours1End !== undefined) {
@@ -155,7 +189,11 @@ export default function EmbeddableWidget({
     if (workingHours2Start !== undefined && workingHours2End !== undefined) {
       setWorkingHours2({ start: workingHours2Start, end: workingHours2End });
     }
-  }, [workingHours1Start, workingHours1End, workingHours2Start, workingHours2End]);
+    
+    if (workingHours3Start !== undefined && workingHours3End !== undefined) {
+      setWorkingHours3({ start: workingHours3Start, end: workingHours3End });
+    }
+  }, [workingHours1Start, workingHours1End, workingHours2Start, workingHours2End, workingHours3Start, workingHours3End]);
   
   // Generate time slots for the grid (hour increments)
   const timeSlots = Array.from({ length: 24 }, (_, i) => i);
@@ -214,6 +252,10 @@ export default function EmbeddableWidget({
   
   const getLocation2Color = () => {
     return currentTheme === 'dark' ? 'bg-purple-500/50' : 'bg-purple-200';
+  };
+  
+  const getLocation3Color = () => {
+    return currentTheme === 'dark' ? 'bg-green-500/50' : 'bg-green-200';
   };
   
   const getMeetingTimeColor = () => {
@@ -303,6 +345,35 @@ export default function EmbeddableWidget({
               )}
             </div>
           </div>
+          
+          {/* Third Timezone (Optional) */}
+          {showThirdTimezone && (
+            <div className={`p-2 rounded ${currentTheme === 'dark' ? 'bg-gray-800' : 'bg-gray-50'} ${compact ? '' : 'col-span-2'}`}>
+              <div className="flex flex-col">
+                <span className={`text-xs font-medium ${currentTheme === 'dark' ? 'text-gray-300' : 'text-gray-600'}`}>
+                  {shortTz3Label}
+                </span>
+                {/* Meeting time takes prominence */}
+                {showMeetingTime && (
+                  <div className="mb-1">
+                    <span className={`text-lg font-bold ${currentTheme === 'dark' ? 'text-amber-300' : 'text-amber-600'}`}>
+                      {time3.set({ hour: (meetingTimeStart + (time3Hour - time1Hour) + 24) % 24, minute: 0 }).toFormat(shortTimeFormat)} - {time3.set({ hour: (meetingTimeEnd + (time3Hour - time1Hour) + 24) % 24, minute: 0 }).toFormat(shortTimeFormat)}
+                    </span>
+                    <span className={`text-xs font-medium block ${currentTheme === 'dark' ? 'text-amber-300/80' : 'text-amber-600/80'}`}>Meeting Time</span>
+                  </div>
+                )}
+                {/* Current time is secondary */}
+                <span className={`${showMeetingTime ? 'text-sm' : 'text-lg'} ${showMeetingTime ? '' : 'font-bold'} ${currentTheme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+                  Current: {time3.toFormat(timeFormat)}
+                </span>
+                {showDate && (
+                  <span className={`text-xs mt-1 ${currentTheme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>
+                    {time3.toFormat(dateFormat)}
+                  </span>
+                )}
+              </div>
+            </div>
+          )}
         </div>
         
         {/* Time Grid Visualization (Modern UX) */}
@@ -448,6 +519,63 @@ export default function EmbeddableWidget({
                     );
                   })}
                 </div>
+                
+                {/* Third location row (optional) */}
+                {showThirdTimezone && (
+                  <div className="grid grid-cols-[repeat(24,minmax(0,1fr))] gap-0 h-[35px] border-t border-gray-700">
+                    {timeSlots.map((timeSlot) => {
+                      const hourDiff3 = time3Hour - time1Hour;
+                      const time3HourDecimal = (timeSlot + hourDiff3 + 24) % 24;
+                      
+                      // Convert to hours for working hours check
+                      const time3TotalMinutes = time3HourDecimal * 60;
+                      
+                      // Convert working hours to total minutes for comparison
+                      const workingStart3 = workingHours3.start * 60;
+                      const workingEnd3 = workingHours3.end * 60;
+                      
+                      // Check if working hour
+                      const isWorkingHour3 = showWorkingHours && (
+                        workingHours3.start <= workingHours3.end
+                          ? time3TotalMinutes >= workingStart3 && time3TotalMinutes < workingEnd3
+                          : time3TotalMinutes >= workingStart3 || time3TotalMinutes < workingEnd3
+                      );
+                      
+                      const isMeetingHour = isMeetingTime(timeSlot);
+                      
+                      // Format the time for this slot in timezone3
+                      const slotDateTime = DateTime.fromObject({ hour: Math.floor(time3HourDecimal), minute: (time3HourDecimal % 1) * 60 }).setZone(timezone3);
+                      const slotTimeString = slotDateTime.toFormat('h:mm a');
+
+                      return (
+                        <div
+                          key={`loc3-${timeSlot}`}
+                          className={`relative h-full ${timeSlot % 1 === 0 ? 'border-r border-gray-700/30' : ''}`}
+                          onMouseEnter={() => setHoveredHour(timeSlot)}
+                          onMouseLeave={() => setHoveredHour(null)}
+                        >
+                          <div
+                            className={`h-full ${
+                              isMeetingHour ? getMeetingTimeColor() : 
+                              isWorkingHour3 ? getLocation3Color() : 'bg-opacity-0'
+                            }`}
+                          />
+                          {hoveredHour === timeSlot && (
+                            <motion.div
+                              initial={{ opacity: 0 }}
+                              animate={{ opacity: 1 }}
+                              className="absolute top-0 left-0 right-0 h-full bg-white bg-opacity-20 z-10"
+                            >
+                              <div className="absolute bottom-[-20px] left-[-10px] bg-gray-800 text-white text-xs p-1 rounded whitespace-nowrap z-20">
+                                {slotTimeString}
+                              </div>
+                            </motion.div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
             </div>
             
@@ -466,8 +594,16 @@ export default function EmbeddableWidget({
                     {shortTz2Label} hrs
                   </span>
                 </div>
+                {showThirdTimezone && (
+                  <div className="flex items-center">
+                    <div className={`w-3 h-3 mr-1 rounded ${getLocation3Color()}`}></div>
+                    <span className={currentTheme === 'dark' ? 'text-gray-300' : 'text-gray-600'}>
+                      {shortTz3Label} hrs
+                    </span>
+                  </div>
+                )}
                 {showMeetingTime && (
-                  <div className="flex items-center col-span-2">
+                  <div className={`flex items-center ${showThirdTimezone ? '' : 'col-span-2'}`}>
                     <div className={`w-3 h-3 mr-1 rounded ${getMeetingTimeColor()}`}></div>
                     <span className={`font-medium ${currentTheme === 'dark' ? 'text-amber-300' : 'text-amber-600'}`}>Meeting Time</span>
                   </div>

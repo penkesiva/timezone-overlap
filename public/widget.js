@@ -3,11 +3,24 @@
   const defaultConfig = {
     timezone1: 'America/Los_Angeles',
     timezone2: 'Europe/London',
+    timezone3: 'Asia/Tokyo',
     label1: 'Los Angeles (PT)',
     label2: 'London (GMT)',
+    label3: 'Tokyo (JST)',
     theme: 'dark',
     showDate: true,
-    compact: false
+    compact: false,
+    workingHours1Start: 9,
+    workingHours1End: 17,
+    workingHours2Start: 9,
+    workingHours2End: 17,
+    workingHours3Start: 9,
+    workingHours3End: 17,
+    showWorkingHours: true,
+    meetingTimeStart: 13,
+    meetingTimeEnd: 14,
+    showMeetingTime: true,
+    showThirdTimezone: false
   };
 
   // Parse script attributes from the embedding script tag
@@ -78,9 +91,11 @@
     
     const time1 = DateTime.now().setZone(config.timezone1);
     const time2 = DateTime.now().setZone(config.timezone2);
+    const time3 = DateTime.now().setZone(config.timezone3);
     
     // Calculate the offset between the two timezones
-    const hourDiff = (time2.offset - time1.offset) / 60;
+    const hourDiff1 = (time2.offset - time1.offset) / 60;
+    const hourDiff2 = (time3.offset - time1.offset) / 60;
     
     // Apply theming based on the config
     const bgColor = config.theme === 'dark' ? 'bg-gray-800' : 'bg-white';
@@ -89,68 +104,86 @@
     const borderColor = config.theme === 'dark' ? 'border-gray-700' : 'border-gray-200';
     const location1Color = config.theme === 'dark' ? 'text-blue-400' : 'text-blue-600';
     const location2Color = config.theme === 'dark' ? 'text-purple-400' : 'text-purple-600';
+    const location3Color = config.theme === 'dark' ? 'text-green-400' : 'text-green-600';
     
     // Generate HTML for the widget
     const html = `
-      <div class="${bgColor} ${textColor} rounded-lg shadow-md border ${borderColor} overflow-hidden" style="width: 100%; max-width: ${config.compact ? '300px' : '500px'};">
-        <div class="p-3 flex justify-between items-center border-b ${borderColor}">
-          <div class="text-sm">
-            Timezone Comparison
-          </div>
-          <a 
-            href="https://timezoneoverlap.net" 
-            target="_blank" 
-            rel="noopener noreferrer"
-            class="text-xs ${subTextColor} hover:underline"
-          >
-            powered by timezoneoverlap.net
-          </a>
-        </div>
-        
-        <div class="p-4 space-y-4">
-          <!-- Location 1 -->
-          <div class="flex items-center space-x-2">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5 ${location1Color}">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            <div>
-              <span class="${location1Color} font-mono text-lg">
-                ${time1.toFormat('h:mm a')}
-              </span>
-              ${config.showDate ? `
-                <span class="${subTextColor} text-sm ml-2">
-                  ${time1.toFormat('EEE, MMM d')}
-                </span>
-              ` : ''}
-              <div class="${subTextColor} text-sm">${config.label1}</div>
-            </div>
+      <div class="timezone-widget ${bgColor} ${textColor} p-4 rounded-lg shadow-lg border ${borderColor} font-sans" style="max-width: ${config.compact ? '320px' : '400px'}">
+        <div class="flex flex-col space-y-4">
+          <!-- Header -->
+          <div class="flex justify-between items-center">
+            <h3 class="text-sm font-medium ${subTextColor}">Timezone Comparison</h3>
+            <a href="https://timezoneoverlap.net" target="_blank" rel="noopener noreferrer" class="text-xs ${subTextColor} hover:underline">
+              timezoneoverlap.net
+            </a>
           </div>
           
-          <!-- Location 2 -->
-          <div class="flex items-center space-x-2">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5 ${location2Color}">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            <div>
-              <span class="${location2Color} font-mono text-lg">
-                ${time2.toFormat('h:mm a')}
-              </span>
-              ${config.showDate ? `
-                <span class="${subTextColor} text-sm ml-2">
-                  ${time2.toFormat('EEE, MMM d')}
+          <!-- Locations -->
+          <div class="flex flex-col space-y-3">
+            <!-- Location 1 -->
+            <div class="flex items-center space-x-2">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5 ${location1Color}">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <div>
+                <span class="${location1Color} font-mono text-lg">
+                  ${time1.toFormat('h:mm a')}
                 </span>
-              ` : ''}
-              <div class="${subTextColor} text-sm">${config.label2}</div>
+                ${config.showDate ? `
+                  <span class="${subTextColor} text-sm ml-2">
+                    ${time1.toFormat('EEE, MMM d')}
+                  </span>
+                ` : ''}
+                <div class="${subTextColor} text-sm">${config.label1}</div>
+              </div>
             </div>
+            
+            <!-- Location 2 -->
+            <div class="flex items-center space-x-2">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5 ${location2Color}">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <div>
+                <span class="${location2Color} font-mono text-lg">
+                  ${time2.toFormat('h:mm a')}
+                </span>
+                ${config.showDate ? `
+                  <span class="${subTextColor} text-sm ml-2">
+                    ${time2.toFormat('EEE, MMM d')}
+                  </span>
+                ` : ''}
+                <div class="${subTextColor} text-sm">${config.label2}</div>
+              </div>
+            </div>
+            
+            <!-- Location 3 -->
+            ${config.showThirdTimezone ? `
+              <div class="flex items-center space-x-2">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5 ${location3Color}">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <div>
+                  <span class="${location3Color} font-mono text-lg">
+                    ${time3.toFormat('h:mm a')}
+                  </span>
+                  ${config.showDate ? `
+                    <span class="${subTextColor} text-sm ml-2">
+                      ${time3.toFormat('EEE, MMM d')}
+                    </span>
+                  ` : ''}
+                  <div class="${subTextColor} text-sm">${config.label3}</div>
+                </div>
+              </div>
+            ` : ''}
+            
+            <!-- Time difference -->
+            ${!config.compact ? `
+              <div class="text-xs ${subTextColor} pt-2 border-t ${borderColor}">
+                Time difference: ${Math.abs(hourDiff1)} hour${Math.abs(hourDiff1) !== 1 ? 's' : ''}
+                ${hourDiff1 > 0 ? ` (${config.label2} is ahead)` : hourDiff1 < 0 ? ` (${config.label1} is ahead)` : ''}
+              </div>
+            ` : ''}
           </div>
-          
-          <!-- Time difference -->
-          ${!config.compact ? `
-            <div class="text-xs ${subTextColor} pt-2 border-t ${borderColor}">
-              Time difference: ${Math.abs(hourDiff)} hour${Math.abs(hourDiff) !== 1 ? 's' : ''}
-              ${hourDiff > 0 ? ` (${config.label2} is ahead)` : hourDiff < 0 ? ` (${config.label1} is ahead)` : ''}
-            </div>
-          ` : ''}
         </div>
       </div>
     `;
