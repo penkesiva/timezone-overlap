@@ -1,124 +1,147 @@
+import { DateTime } from 'luxon';
+
 export interface TimezoneOption {
-  readonly value: string;
-  readonly label: string;
-  readonly group: string;
+  value: string;
+  label: string;
+  offset: string;
+  abbr: string;
+  group: string;
 }
 
-// All major timezones with their proper names
-export const allTimezones: TimezoneOption[] = [
+// List of common timezones with their labels and offsets
+export const timezoneOptions: TimezoneOption[] = [
+  // North America
+  { value: 'America/Los_Angeles', label: 'Los Angeles', offset: 'UTC-8/UTC-7', abbr: 'PT', group: 'North America' },
+  { value: 'America/Denver', label: 'Denver', offset: 'UTC-7/UTC-6', abbr: 'MT', group: 'North America' },
+  { value: 'America/Chicago', label: 'Chicago', offset: 'UTC-6/UTC-5', abbr: 'CT', group: 'North America' },
+  { value: 'America/New_York', label: 'New York', offset: 'UTC-5/UTC-4', abbr: 'ET', group: 'North America' },
+  { value: 'America/Toronto', label: 'Toronto', offset: 'UTC-5/UTC-4', abbr: 'ET', group: 'North America' },
+  { value: 'America/Vancouver', label: 'Vancouver', offset: 'UTC-8/UTC-7', abbr: 'PT', group: 'North America' },
+  
+  // Europe
+  { value: 'Europe/London', label: 'London', offset: 'UTC+0/UTC+1', abbr: 'GMT/BST', group: 'Europe' },
+  { value: 'Europe/Paris', label: 'Paris', offset: 'UTC+1/UTC+2', abbr: 'CET/CEST', group: 'Europe' },
+  { value: 'Europe/Berlin', label: 'Berlin', offset: 'UTC+1/UTC+2', abbr: 'CET/CEST', group: 'Europe' },
+  { value: 'Europe/Madrid', label: 'Madrid', offset: 'UTC+1/UTC+2', abbr: 'CET/CEST', group: 'Europe' },
+  { value: 'Europe/Rome', label: 'Rome', offset: 'UTC+1/UTC+2', abbr: 'CET/CEST', group: 'Europe' },
+  
   // Asia
-  { value: 'Asia/Kolkata', label: 'India - New Delhi, Mumbai', group: 'Asia' },
-  { value: 'Asia/Dubai', label: 'UAE - Dubai, Abu Dhabi', group: 'Asia' },
-  { value: 'Asia/Tokyo', label: 'Japan - Tokyo, Osaka', group: 'Asia' },
-  { value: 'Asia/Shanghai', label: 'China - Shanghai, Beijing', group: 'Asia' },
-  { value: 'Asia/Singapore', label: 'Singapore', group: 'Asia' },
-  { value: 'Asia/Seoul', label: 'South Korea - Seoul', group: 'Asia' },
-  { value: 'Asia/Hong_Kong', label: 'Hong Kong', group: 'Asia' },
-  { value: 'Asia/Jakarta', label: 'Indonesia - Jakarta', group: 'Asia' },
-  { value: 'Asia/Manila', label: 'Philippines - Manila', group: 'Asia' },
-  { value: 'Asia/Bangkok', label: 'Thailand - Bangkok', group: 'Asia' },
-  { value: 'Asia/Karachi', label: 'Pakistan - Karachi, Islamabad', group: 'Asia' },
-  { value: 'Asia/Dhaka', label: 'Bangladesh - Dhaka', group: 'Asia' },
-  { value: 'Asia/Riyadh', label: 'Saudi Arabia - Riyadh', group: 'Asia' },
-  { value: 'Asia/Tel_Aviv', label: 'Israel - Tel Aviv', group: 'Asia' },
-  { value: 'Asia/Tehran', label: 'Iran - Tehran', group: 'Asia' },
-  { value: 'Asia/Baghdad', label: 'Iraq - Baghdad', group: 'Asia' },
-  { value: 'Asia/Kuala_Lumpur', label: 'Malaysia - Kuala Lumpur', group: 'Asia' },
-  { value: 'Asia/Ho_Chi_Minh', label: 'Vietnam - Ho Chi Minh City', group: 'Asia' },
-
-  // Americas - North
-  { value: 'America/New_York', label: 'USA - New York, Miami (ET)', group: 'Americas - North' },
-  { value: 'America/Los_Angeles', label: 'USA - Los Angeles, San Francisco (PT)', group: 'Americas - North' },
-  { value: 'America/Chicago', label: 'USA - Chicago, Houston (CT)', group: 'Americas - North' },
-  { value: 'America/Denver', label: 'USA - Denver, Phoenix (MT)', group: 'Americas - North' },
-  { value: 'America/Toronto', label: 'Canada - Toronto, Ottawa', group: 'Americas - North' },
-  { value: 'America/Vancouver', label: 'Canada - Vancouver', group: 'Americas - North' },
-  { value: 'America/Montreal', label: 'Canada - Montreal', group: 'Americas - North' },
-  { value: 'America/Mexico_City', label: 'Mexico - Mexico City', group: 'Americas - North' },
-
-  // Americas - South & Central
-  { value: 'America/Sao_Paulo', label: 'Brazil - São Paulo, Rio de Janeiro', group: 'Americas - South' },
-  { value: 'America/Buenos_Aires', label: 'Argentina - Buenos Aires', group: 'Americas - South' },
-  { value: 'America/Santiago', label: 'Chile - Santiago', group: 'Americas - South' },
-  { value: 'America/Lima', label: 'Peru - Lima', group: 'Americas - South' },
-  { value: 'America/Bogota', label: 'Colombia - Bogotá', group: 'Americas - South' },
-  { value: 'America/Caracas', label: 'Venezuela - Caracas', group: 'Americas - South' },
-  { value: 'America/Panama', label: 'Panama City', group: 'Americas - South' },
-
-  // Europe - Western
-  { value: 'Europe/London', label: 'UK - London, Manchester', group: 'Europe - Western' },
-  { value: 'Europe/Paris', label: 'France - Paris', group: 'Europe - Western' },
-  { value: 'Europe/Berlin', label: 'Germany - Berlin, Munich', group: 'Europe - Western' },
-  { value: 'Europe/Rome', label: 'Italy - Rome, Milan', group: 'Europe - Western' },
-  { value: 'Europe/Madrid', label: 'Spain - Madrid, Barcelona', group: 'Europe - Western' },
-  { value: 'Europe/Amsterdam', label: 'Netherlands - Amsterdam', group: 'Europe - Western' },
-  { value: 'Europe/Brussels', label: 'Belgium - Brussels', group: 'Europe - Western' },
-  { value: 'Europe/Zurich', label: 'Switzerland - Zurich, Geneva', group: 'Europe - Western' },
-  { value: 'Europe/Dublin', label: 'Ireland - Dublin', group: 'Europe - Western' },
-  { value: 'Europe/Lisbon', label: 'Portugal - Lisbon', group: 'Europe - Western' },
-
-  // Europe - Eastern & Northern
-  { value: 'Europe/Stockholm', label: 'Sweden - Stockholm', group: 'Europe - Eastern' },
-  { value: 'Europe/Oslo', label: 'Norway - Oslo', group: 'Europe - Eastern' },
-  { value: 'Europe/Copenhagen', label: 'Denmark - Copenhagen', group: 'Europe - Eastern' },
-  { value: 'Europe/Warsaw', label: 'Poland - Warsaw', group: 'Europe - Eastern' },
-  { value: 'Europe/Budapest', label: 'Hungary - Budapest', group: 'Europe - Eastern' },
-  { value: 'Europe/Vienna', label: 'Austria - Vienna', group: 'Europe - Eastern' },
-  { value: 'Europe/Prague', label: 'Czech Republic - Prague', group: 'Europe - Eastern' },
-  { value: 'Europe/Moscow', label: 'Russia - Moscow', group: 'Europe - Eastern' },
-  { value: 'Europe/Athens', label: 'Greece - Athens', group: 'Europe - Eastern' },
-  { value: 'Europe/Istanbul', label: 'Turkey - Istanbul', group: 'Europe - Eastern' },
-
-  // Oceania
-  { value: 'Australia/Sydney', label: 'Australia - Sydney, Canberra', group: 'Oceania' },
-  { value: 'Australia/Melbourne', label: 'Australia - Melbourne', group: 'Oceania' },
-  { value: 'Australia/Brisbane', label: 'Australia - Brisbane', group: 'Oceania' },
-  { value: 'Australia/Perth', label: 'Australia - Perth', group: 'Oceania' },
-  { value: 'Australia/Adelaide', label: 'Australia - Adelaide', group: 'Oceania' },
-  { value: 'Pacific/Auckland', label: 'New Zealand - Auckland', group: 'Oceania' },
-  { value: 'Pacific/Fiji', label: 'Fiji - Suva', group: 'Oceania' },
-
+  { value: 'Asia/Tokyo', label: 'Tokyo', offset: 'UTC+9', abbr: 'JST', group: 'Asia' },
+  { value: 'Asia/Shanghai', label: 'Shanghai', offset: 'UTC+8', abbr: 'CST', group: 'Asia' },
+  { value: 'Asia/Singapore', label: 'Singapore', offset: 'UTC+8', abbr: 'SGT', group: 'Asia' },
+  { value: 'Asia/Dubai', label: 'Dubai', offset: 'UTC+4', abbr: 'GST', group: 'Asia' },
+  { value: 'Asia/Kolkata', label: 'Mumbai', offset: 'UTC+5:30', abbr: 'IST', group: 'Asia' },
+  
+  // Australia & Pacific
+  { value: 'Australia/Sydney', label: 'Sydney', offset: 'UTC+10/UTC+11', abbr: 'AEST/AEDT', group: 'Australia & Pacific' },
+  { value: 'Australia/Melbourne', label: 'Melbourne', offset: 'UTC+10/UTC+11', abbr: 'AEST/AEDT', group: 'Australia & Pacific' },
+  { value: 'Pacific/Auckland', label: 'Auckland', offset: 'UTC+12/UTC+13', abbr: 'NZST/NZDT', group: 'Australia & Pacific' },
+  
+  // South America
+  { value: 'America/Sao_Paulo', label: 'São Paulo', offset: 'UTC-3/UTC-2', abbr: 'BRT/BRST', group: 'South America' },
+  { value: 'America/Buenos_Aires', label: 'Buenos Aires', offset: 'UTC-3', abbr: 'ART', group: 'South America' },
+  
   // Africa
-  { value: 'Africa/Cairo', label: 'Egypt - Cairo', group: 'Africa' },
-  { value: 'Africa/Johannesburg', label: 'South Africa - Johannesburg', group: 'Africa' },
-  { value: 'Africa/Lagos', label: 'Nigeria - Lagos', group: 'Africa' },
-  { value: 'Africa/Nairobi', label: 'Kenya - Nairobi', group: 'Africa' },
-  { value: 'Africa/Casablanca', label: 'Morocco - Casablanca', group: 'Africa' },
-  { value: 'Africa/Accra', label: 'Ghana - Accra', group: 'Africa' },
-  { value: 'Africa/Addis_Ababa', label: 'Ethiopia - Addis Ababa', group: 'Africa' },
-  { value: 'Africa/Dar_es_Salaam', label: 'Tanzania - Dar es Salaam', group: 'Africa' },
-  { value: 'Africa/Khartoum', label: 'Sudan - Khartoum', group: 'Africa' },
-  { value: 'Africa/Algiers', label: 'Algeria - Algiers', group: 'Africa' }
-].sort((a, b) => a.label.localeCompare(b.label));
+  { value: 'Africa/Johannesburg', label: 'Johannesburg', offset: 'UTC+2', abbr: 'SAST', group: 'Africa' },
+  { value: 'Africa/Cairo', label: 'Cairo', offset: 'UTC+2', abbr: 'EET', group: 'Africa' },
+];
 
-// Group timezones by continent/region
-const groupedTimeZones = allTimezones.reduce<Record<string, TimezoneOption[]>>((acc, zone) => {
-  if (!acc[zone.group]) {
-    acc[zone.group] = [];
+// Group timezone options by continent/region
+export const groupedTimezoneOptions = timezoneOptions.reduce((acc, option) => {
+  const group = option.group;
+  if (!acc[group]) {
+    acc[group] = [];
   }
-  acc[zone.group].push(zone);
+  acc[group].push(option);
   return acc;
-}, {});
+}, {} as Record<string, TimezoneOption[]>);
 
-// Format for react-select
-export const groupOptions = Object.entries(groupedTimeZones)
-  .sort(([a], [b]) => a.localeCompare(b))
-  .map(([group, zones]) => ({
-    label: group,
-    options: zones
-  }));
-
-// Find timezone by value
-export const findTimezoneOption = (timezone: string): TimezoneOption => {
-  // Try to find exact match first
-  let option = allTimezones.find(tz => tz.value === timezone);
-  
-  // If no exact match, try to find a timezone in the same region
+// Find a timezone option by its value
+export const findTimezoneOption = (value: string): TimezoneOption => {
+  const option = timezoneOptions.find(option => option.value === value);
   if (!option) {
-    const region = timezone.split('/')[0];
-    option = allTimezones.find(tz => tz.value.startsWith(`${region}/`));
+    // Return a default option if not found
+    return {
+      value,
+      label: value.split('/').pop() || value,
+      offset: 'Unknown',
+      abbr: 'UNK',
+      group: 'Other'
+    };
+  }
+  return option;
+};
+
+// Get current time in a specific timezone
+export const getCurrentTimeInTimezone = (timezone: string): DateTime => {
+  return DateTime.now().setZone(timezone);
+};
+
+// Format time for display
+export const formatTime = (time: DateTime, format: string = 'h:mm a'): string => {
+  return time.toFormat(format);
+};
+
+// Get current offset for a timezone
+export const getTimezoneOffset = (timezone: string): string => {
+  const now = DateTime.now().setZone(timezone);
+  return now.toFormat('ZZZZ');
+};
+
+// Get abbreviation for a timezone
+export const getTimezoneAbbreviation = (timezone: string): string => {
+  const now = DateTime.now().setZone(timezone);
+  return now.toFormat('ZZZZ');
+};
+
+// Calculate time difference between two timezones
+export const getTimeDifference = (timezone1: string, timezone2: string): number => {
+  const time1 = DateTime.now().setZone(timezone1);
+  const time2 = DateTime.now().setZone(timezone2);
+  return time1.offset - time2.offset;
+};
+
+// Format time difference for display
+export const formatTimeDifference = (hours: number): string => {
+  const absHours = Math.abs(hours);
+  const sign = hours >= 0 ? '+' : '-';
+  return `${sign}${absHours}h`;
+};
+
+// Check if a time is within working hours
+export const isWithinWorkingHours = (
+  time: DateTime, 
+  workingHours: { start: number; end: number }
+): boolean => {
+  const hour = time.hour;
+  return hour >= workingHours.start && hour < workingHours.end;
+};
+
+// Find overlapping working hours between timezones
+export const findOverlappingHours = (
+  timezone1: string,
+  timezone2: string,
+  workingHours1: { start: number; end: number },
+  workingHours2: { start: number; end: number }
+): { start: number; end: number } | null => {
+  // Convert working hours to UTC for comparison
+  const now = DateTime.now();
+  const tz1Start = now.setZone(timezone1).set({ hour: workingHours1.start }).toUTC().hour;
+  const tz1End = now.setZone(timezone1).set({ hour: workingHours1.end }).toUTC().hour;
+  const tz2Start = now.setZone(timezone2).set({ hour: workingHours2.start }).toUTC().hour;
+  const tz2End = now.setZone(timezone2).set({ hour: workingHours2.end }).toUTC().hour;
+  
+  // Find overlap
+  const overlapStart = Math.max(tz1Start, tz2Start);
+  const overlapEnd = Math.min(tz1End, tz2End);
+  
+  if (overlapStart < overlapEnd) {
+    // Convert back to local time in timezone1
+    const localOverlapStart = now.setZone('UTC').set({ hour: overlapStart }).setZone(timezone1).hour;
+    const localOverlapEnd = now.setZone('UTC').set({ hour: overlapEnd }).setZone(timezone1).hour;
+    
+    return { start: localOverlapStart, end: localOverlapEnd };
   }
   
-  // Default to first timezone if no match found
-  return option || allTimezones[0];
+  return null; // No overlap
 }; 

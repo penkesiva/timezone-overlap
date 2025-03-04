@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import dynamic from 'next/dynamic';
-import { groupOptions } from '@/app/utils/timezones';
+import { groupedTimezoneOptions, timezoneOptions } from '@/app/utils/timezones';
 import { ClipboardIcon, CheckIcon } from '@heroicons/react/24/outline';
 
 // Dynamically load components
@@ -160,20 +160,12 @@ export default function EmbedPage() {
 
   // Find the current timezone option for timezone1
   const findTimezone1Option = () => {
-    for (const group of groupOptions) {
-      const option = group.options.find(o => o.value === timezone1);
-      if (option) return option;
-    }
-    return null;
+    return timezoneOptions.find(option => option.value === timezone1) || null;
   };
 
   // Find the current timezone option for timezone2
   const findTimezone2Option = () => {
-    for (const group of groupOptions) {
-      const option = group.options.find(o => o.value === timezone2);
-      if (option) return option;
-    }
-    return null;
+    return timezoneOptions.find(option => option.value === timezone2) || null;
   };
   
   // Format working hours (12-hour format with AM/PM)
@@ -253,6 +245,16 @@ export default function EmbedPage() {
     }
   };
   
+  // Format the timezone options for react-select
+  const formatGroupOptions = () => {
+    return Object.entries(groupedTimezoneOptions)
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([group, options]) => ({
+        label: group,
+        options
+      }));
+  };
+  
   if (!mounted) {
     return <div className="container mx-auto px-4 py-8 max-w-6xl">Loading...</div>;
   }
@@ -279,7 +281,7 @@ export default function EmbedPage() {
                   First Timezone
                 </label>
                 <Select
-                  options={groupOptions}
+                  options={formatGroupOptions()}
                   onChange={handleTimezone1Change}
                   value={findTimezone1Option()}
                   className="basic-select"
@@ -382,7 +384,7 @@ export default function EmbedPage() {
                   Second Timezone
                 </label>
                 <Select
-                  options={groupOptions}
+                  options={formatGroupOptions()}
                   onChange={handleTimezone2Change}
                   value={findTimezone2Option()}
                   className="basic-select"
