@@ -25,6 +25,11 @@ export async function GET(request: Request) {
   const workingHours2End = parseInt(searchParams.get('workingHours2End') || '17', 10);
   const showWorkingHours = searchParams.get('showWorkingHours') !== 'false';
   
+  // Get meeting time configuration
+  const meetingTimeStart = parseInt(searchParams.get('meetingTimeStart') || '13', 10);
+  const meetingTimeEnd = parseInt(searchParams.get('meetingTimeEnd') || '14', 10);
+  const showMeetingTime = searchParams.get('showMeetingTime') !== 'false';
+  
   // Get current time data
   const currentTime = DateTime.now();
   const time1 = currentTime.setZone(timezone1);
@@ -50,6 +55,7 @@ export async function GET(request: Request) {
   const loc1Color = theme === 'dark' ? 'bg-blue-500/50' : 'bg-blue-200';
   const loc2Color = theme === 'dark' ? 'bg-purple-500/50' : 'bg-purple-200';
   const overlapColor = theme === 'dark' ? 'bg-green-500/50' : 'bg-green-200';
+  const meetingTimeColor = theme === 'dark' ? 'bg-amber-500/50' : 'bg-amber-200';
   
   // Calculate hour difference between timezones
   const time1Hour = time1.hour + time1.minute / 60;
@@ -72,6 +78,13 @@ export async function GET(request: Request) {
         : time1TotalMinutes >= workingStart1 || time1TotalMinutes < workingEnd1
     );
     
+    // Check if current hour is within meeting time
+    const isMeetingTime = showMeetingTime && (
+      meetingTimeStart <= meetingTimeEnd
+        ? hour >= meetingTimeStart && hour < meetingTimeEnd
+        : hour >= meetingTimeStart || hour < meetingTimeEnd
+    );
+    
     // Second location
     const time2HourDecimal = (hour + hourDiff + 24) % 24;
     const time2TotalMinutes = time2HourDecimal * 60;
@@ -88,14 +101,14 @@ export async function GET(request: Request) {
     const isOverlap = isWorkingHour1 && isWorkingHour2;
     
     // Add slots HTML
-    const backgroundColor1 = isOverlap ? overlapColor : isWorkingHour1 ? loc1Color : '';
+    const backgroundColor1 = isMeetingTime ? meetingTimeColor : isOverlap ? overlapColor : isWorkingHour1 ? loc1Color : '';
     timeSlotsHtml += `
       <div class="h-full border-r border-gray-700/30" style="grid-column: span 1">
         <div class="h-full ${backgroundColor1}"></div>
       </div>
     `;
     
-    const backgroundColor2 = isOverlap ? overlapColor : isWorkingHour2 ? loc2Color : '';
+    const backgroundColor2 = isMeetingTime ? meetingTimeColor : isOverlap ? overlapColor : isWorkingHour2 ? loc2Color : '';
     timeSlotsHtml2 += `
       <div class="h-full border-r border-gray-700/30" style="grid-column: span 1">
         <div class="h-full ${backgroundColor2}"></div>
@@ -191,19 +204,26 @@ export async function GET(request: Request) {
               <div class="flex items-center">
                 <div class="w-3 h-3 mr-1 rounded ${loc1Color}"></div>
                 <span class="${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'}">
-                  ${tz1Label.split(' - ')[0].substring(0, 8)} hours
+                  ${tz1Label.split(' - ')[0].substring(0, 8)} hrs
                 </span>
               </div>
               <div class="flex items-center">
                 <div class="w-3 h-3 mr-1 rounded ${loc2Color}"></div>
                 <span class="${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'}">
-                  ${tz2Label.split(' - ')[0].substring(0, 8)} hours
+                  ${tz2Label.split(' - ')[0].substring(0, 8)} hrs
                 </span>
               </div>
+              ${showMeetingTime ? `
+              <div class="flex items-center">
+                <div class="w-3 h-3 mr-1 rounded ${meetingTimeColor}"></div>
+                <span class="${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'}">Meeting</span>
+              </div>
+              ` : `
               <div class="flex items-center">
                 <div class="w-3 h-3 mr-1 rounded ${overlapColor}"></div>
                 <span class="${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'}">Overlap</span>
               </div>
+              `}
             </div>
             
             <!-- Time markers -->

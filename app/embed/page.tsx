@@ -27,6 +27,10 @@ export default function EmbedPage() {
   const [workingHours2, setWorkingHours2] = useState({ start: 9, end: 17 });
   const [showWorkingHours, setShowWorkingHours] = useState<boolean>(true);
   
+  // Add meeting time state
+  const [meetingTime, setMeetingTime] = useState({ start: 13, end: 14 }); // Default to 1-2 PM
+  const [showMeetingTime, setShowMeetingTime] = useState<boolean>(true);
+  
   // Set origin and mounted on client, load saved timezones from localStorage
   useEffect(() => {
     setOrigin(window.location.origin);
@@ -73,6 +77,28 @@ export default function EmbedPage() {
     } catch (e) {
       console.error('Error accessing localStorage:', e);
     }
+    
+    // Setup event listener for theme changes
+    const handleThemeChange = (e: Event) => {
+      const customEvent = e as CustomEvent;
+      if (customEvent.detail && customEvent.detail.theme) {
+        setTheme(customEvent.detail.theme as 'light' | 'dark');
+      }
+    };
+    
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'theme' && e.newValue) {
+        setTheme(e.newValue as 'light' | 'dark');
+      }
+    };
+    
+    window.addEventListener('themeChange', handleThemeChange);
+    window.addEventListener('storage', handleStorageChange);
+    
+    return () => {
+      window.removeEventListener('themeChange', handleThemeChange);
+      window.removeEventListener('storage', handleStorageChange);
+    };
   }, []);
   
   // Generate embed code based on current configuration
@@ -91,6 +117,9 @@ export default function EmbedPage() {
   data-working-hours2-start="${workingHours2.start}"
   data-working-hours2-end="${workingHours2.end}"
   data-show-working-hours="${showWorkingHours}"
+  data-meeting-time-start="${meetingTime.start}"
+  data-meeting-time-end="${meetingTime.end}"
+  data-show-meeting-time="${showMeetingTime}"
   async
 ></script>`;
   };
@@ -246,7 +275,7 @@ export default function EmbedPage() {
             <div className="space-y-4">
               {/* Timezone 1 Selection */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
                   First Timezone
                 </label>
                 <Select
@@ -255,26 +284,101 @@ export default function EmbedPage() {
                   value={findTimezone1Option()}
                   className="basic-select"
                   classNamePrefix="select"
+                  styles={{
+                    control: (base) => ({
+                      ...base,
+                      backgroundColor: theme === 'dark' ? '#374151' : base.backgroundColor,
+                      borderColor: theme === 'dark' ? '#4B5563' : base.borderColor,
+                    }),
+                    option: (base, state) => ({
+                      ...base,
+                      backgroundColor: theme === 'dark' 
+                        ? (state.isSelected ? '#2563EB' : (state.isFocused ? '#4B5563' : '#1F2937'))
+                        : (state.isSelected ? base.backgroundColor : (state.isFocused ? '#F3F4F6' : base.backgroundColor)),
+                      color: theme === 'dark' ? '#F9FAFB' : base.color,
+                    }),
+                    menu: (base) => ({
+                      ...base,
+                      backgroundColor: theme === 'dark' ? '#1F2937' : base.backgroundColor,
+                    }),
+                    singleValue: (base) => ({
+                      ...base,
+                      color: theme === 'dark' ? '#F9FAFB' : base.color,
+                    }),
+                    input: (base) => ({
+                      ...base,
+                      color: theme === 'dark' ? '#F9FAFB' : base.color,
+                    }),
+                    placeholder: (base) => ({
+                      ...base,
+                      color: theme === 'dark' ? '#9CA3AF' : base.color,
+                    }),
+                    multiValue: (base) => ({
+                      ...base,
+                      backgroundColor: theme === 'dark' ? '#4B5563' : base.backgroundColor,
+                    }),
+                    multiValueLabel: (base) => ({
+                      ...base,
+                      color: theme === 'dark' ? '#F9FAFB' : base.color,
+                    }),
+                    multiValueRemove: (base) => ({
+                      ...base,
+                      color: theme === 'dark' ? '#D1D5DB' : base.color,
+                      ':hover': {
+                        backgroundColor: theme === 'dark' ? '#6B7280' : (base[':hover']?.backgroundColor || '#f8f9fa'),
+                        color: theme === 'dark' ? '#F3F4F6' : (base[':hover']?.color || '#212529'),
+                      },
+                    }),
+                  }}
                 />
               </div>
               
-              {/* Custom Label 1 */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">
-                  Custom Label (optional)
-                </label>
-                <input
-                  type="text"
-                  value={label1}
-                  onChange={e => setLabel1(e.target.value)}
-                  className="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:text-white sm:text-sm p-2 border"
-                  placeholder="e.g., New York Office"
-                />
+              {/* Custom Label 1 and Working Hours 1 */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
+                    Custom Label (optional)
+                  </label>
+                  <input
+                    type="text"
+                    value={label1}
+                    onChange={e => setLabel1(e.target.value)}
+                    className="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:text-white sm:text-sm p-2 border"
+                    placeholder="Max 8 chars"
+                    maxLength={8}
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
+                    Working Hours - {label1 || findTimezone1Option()?.label.split(' - ')[0] || 'USA'}
+                  </label>
+                  <div className="flex space-x-2 items-center">
+                    <input
+                      type="text"
+                      className="w-24 px-2 py-1 rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:text-white sm:text-sm border"
+                      placeholder="9:00 AM"
+                      value={formatWorkingHours(workingHours1.start)}
+                      onChange={(e) => handleWorkingHoursChange(1, 'start', e.target.value)}
+                    />
+                    <span className="text-gray-500 dark:text-gray-400">to</span>
+                    <input
+                      type="text"
+                      className="w-24 px-2 py-1 rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:text-white sm:text-sm border"
+                      placeholder="5:00 PM"
+                      value={formatWorkingHours(workingHours1.end)}
+                      onChange={(e) => handleWorkingHoursChange(1, 'end', e.target.value)}
+                    />
+                  </div>
+                </div>
               </div>
+              
+              {/* Divider */}
+              <div className="my-4 border-t border-gray-200 dark:border-gray-700 opacity-50"></div>
               
               {/* Timezone 2 Selection */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
                   Second Timezone
                 </label>
                 <Select
@@ -283,26 +387,165 @@ export default function EmbedPage() {
                   value={findTimezone2Option()}
                   className="basic-select"
                   classNamePrefix="select"
+                  styles={{
+                    control: (base) => ({
+                      ...base,
+                      backgroundColor: theme === 'dark' ? '#374151' : base.backgroundColor,
+                      borderColor: theme === 'dark' ? '#4B5563' : base.borderColor,
+                    }),
+                    option: (base, state) => ({
+                      ...base,
+                      backgroundColor: theme === 'dark' 
+                        ? (state.isSelected ? '#2563EB' : (state.isFocused ? '#4B5563' : '#1F2937'))
+                        : (state.isSelected ? base.backgroundColor : (state.isFocused ? '#F3F4F6' : base.backgroundColor)),
+                      color: theme === 'dark' ? '#F9FAFB' : base.color,
+                    }),
+                    menu: (base) => ({
+                      ...base,
+                      backgroundColor: theme === 'dark' ? '#1F2937' : base.backgroundColor,
+                    }),
+                    singleValue: (base) => ({
+                      ...base,
+                      color: theme === 'dark' ? '#F9FAFB' : base.color,
+                    }),
+                    input: (base) => ({
+                      ...base,
+                      color: theme === 'dark' ? '#F9FAFB' : base.color,
+                    }),
+                    placeholder: (base) => ({
+                      ...base,
+                      color: theme === 'dark' ? '#9CA3AF' : base.color,
+                    }),
+                    multiValue: (base) => ({
+                      ...base,
+                      backgroundColor: theme === 'dark' ? '#4B5563' : base.backgroundColor,
+                    }),
+                    multiValueLabel: (base) => ({
+                      ...base,
+                      color: theme === 'dark' ? '#F9FAFB' : base.color,
+                    }),
+                    multiValueRemove: (base) => ({
+                      ...base,
+                      color: theme === 'dark' ? '#D1D5DB' : base.color,
+                      ':hover': {
+                        backgroundColor: theme === 'dark' ? '#6B7280' : (base[':hover']?.backgroundColor || '#f8f9fa'),
+                        color: theme === 'dark' ? '#F3F4F6' : (base[':hover']?.color || '#212529'),
+                      },
+                    }),
+                  }}
                 />
               </div>
               
-              {/* Custom Label 2 */}
+              {/* Custom Label 2 and Working Hours 2 */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
+                    Custom Label (optional)
+                  </label>
+                  <input
+                    type="text"
+                    value={label2}
+                    onChange={e => setLabel2(e.target.value)}
+                    className="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:text-white sm:text-sm p-2 border"
+                    placeholder="Max 8 chars"
+                    maxLength={8}
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
+                    Working Hours - {label2 || findTimezone2Option()?.label.split(' - ')[0] || 'Peru'}
+                  </label>
+                  <div className="flex space-x-2 items-center">
+                    <input
+                      type="text"
+                      className="w-24 px-2 py-1 rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:text-white sm:text-sm border"
+                      placeholder="9:00 AM"
+                      value={formatWorkingHours(workingHours2.start)}
+                      onChange={(e) => handleWorkingHoursChange(2, 'start', e.target.value)}
+                    />
+                    <span className="text-gray-500 dark:text-gray-400">to</span>
+                    <input
+                      type="text"
+                      className="w-24 px-2 py-1 rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:text-white sm:text-sm border"
+                      placeholder="5:00 PM"
+                      value={formatWorkingHours(workingHours2.end)}
+                      onChange={(e) => handleWorkingHoursChange(2, 'end', e.target.value)}
+                    />
+                  </div>
+                </div>
+              </div>
+              
+              {/* Divider */}
+              <div className="my-4 border-t border-gray-200 dark:border-gray-700 opacity-50"></div>
+              
+              {/* Meeting Time Configuration */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">
-                  Custom Label (optional)
+                <label className="block text-base font-medium text-amber-500 dark:text-amber-300 mb-2">
+                  Meeting Time (Local Time)
                 </label>
-                <input
-                  type="text"
-                  value={label2}
-                  onChange={e => setLabel2(e.target.value)}
-                  className="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:text-white sm:text-sm p-2 border"
-                  placeholder="e.g., India Office"
-                />
+                <div className="flex space-x-2 items-center">
+                  <input
+                    type="text"
+                    className="w-24 px-2 py-1 rounded-md border-amber-300 dark:border-amber-500 shadow-sm focus:border-amber-500 focus:ring-amber-500 dark:bg-gray-700 dark:text-white sm:text-sm border"
+                    placeholder="1:00 PM"
+                    value={formatWorkingHours(meetingTime.start)}
+                    onChange={(e) => {
+                      try {
+                        // Parse the input time
+                        const timeParts = e.target.value.match(/(\d+)(?::(\d+))?\s*(am|pm|a|p)?/i);
+                        if (!timeParts) return;
+                        
+                        let hour = parseInt(timeParts[1], 10);
+                        const ampm = timeParts[3] ? timeParts[3].toLowerCase() : null;
+                        
+                        // Handle 12-hour format
+                        if (ampm === 'pm' || ampm === 'p') {
+                          if (hour < 12) hour += 12;
+                        } else if (ampm === 'am' || ampm === 'a') {
+                          if (hour === 12) hour = 0;
+                        }
+                        
+                        setMeetingTime({...meetingTime, start: hour});
+                      } catch (error) {
+                        console.error("Error parsing time:", error);
+                      }
+                    }}
+                  />
+                  <span className="text-gray-500 dark:text-gray-400">to</span>
+                  <input
+                    type="text"
+                    className="w-24 px-2 py-1 rounded-md border-amber-300 dark:border-amber-500 shadow-sm focus:border-amber-500 focus:ring-amber-500 dark:bg-gray-700 dark:text-white sm:text-sm border"
+                    placeholder="2:00 PM"
+                    value={formatWorkingHours(meetingTime.end)}
+                    onChange={(e) => {
+                      try {
+                        // Parse the input time
+                        const timeParts = e.target.value.match(/(\d+)(?::(\d+))?\s*(am|pm|a|p)?/i);
+                        if (!timeParts) return;
+                        
+                        let hour = parseInt(timeParts[1], 10);
+                        const ampm = timeParts[3] ? timeParts[3].toLowerCase() : null;
+                        
+                        // Handle 12-hour format
+                        if (ampm === 'pm' || ampm === 'p') {
+                          if (hour < 12) hour += 12;
+                        } else if (ampm === 'am' || ampm === 'a') {
+                          if (hour === 12) hour = 0;
+                        }
+                        
+                        setMeetingTime({...meetingTime, end: hour});
+                      } catch (error) {
+                        console.error("Error parsing time:", error);
+                      }
+                    }}
+                  />
+                </div>
               </div>
               
               {/* Theme Selection */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
                   Theme
                 </label>
                 <div className="mt-1 flex space-x-4">
@@ -315,7 +558,7 @@ export default function EmbedPage() {
                       checked={theme === 'light'}
                       onChange={() => setTheme('light')}
                     />
-                    <span className="ml-2 dark:text-gray-300">Light</span>
+                    <span className="ml-2 text-sm dark:text-gray-300">Light</span>
                   </label>
                   <label className="inline-flex items-center">
                     <input
@@ -326,91 +569,52 @@ export default function EmbedPage() {
                       checked={theme === 'dark'}
                       onChange={() => setTheme('dark')}
                     />
-                    <span className="ml-2 dark:text-gray-300">Dark</span>
+                    <span className="ml-2 text-sm dark:text-gray-300">Dark</span>
                   </label>
-                </div>
-              </div>
-              
-              {/* Working Hours Configuration - First Location */}
-              <div className="pt-2 border-t border-gray-200 dark:border-gray-700">
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
-                  Working Hours - {label1 || findTimezone1Option()?.label.split(' - ')[0] || 'First Location'}
-                </label>
-                <div className="flex space-x-2 items-center">
-                  <input
-                    type="text"
-                    className="w-24 px-2 py-1 rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:text-white sm:text-sm border"
-                    placeholder="9:00 AM"
-                    value={formatWorkingHours(workingHours1.start)}
-                    onChange={(e) => handleWorkingHoursChange(1, 'start', e.target.value)}
-                  />
-                  <span className="text-gray-500 dark:text-gray-400">to</span>
-                  <input
-                    type="text"
-                    className="w-24 px-2 py-1 rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:text-white sm:text-sm border"
-                    placeholder="5:00 PM"
-                    value={formatWorkingHours(workingHours1.end)}
-                    onChange={(e) => handleWorkingHoursChange(1, 'end', e.target.value)}
-                  />
-                </div>
-              </div>
-              
-              {/* Working Hours Configuration - Second Location */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
-                  Working Hours - {label2 || findTimezone2Option()?.label.split(' - ')[0] || 'Second Location'}
-                </label>
-                <div className="flex space-x-2 items-center">
-                  <input
-                    type="text"
-                    className="w-24 px-2 py-1 rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:text-white sm:text-sm border"
-                    placeholder="9:00 AM"
-                    value={formatWorkingHours(workingHours2.start)}
-                    onChange={(e) => handleWorkingHoursChange(2, 'start', e.target.value)}
-                  />
-                  <span className="text-gray-500 dark:text-gray-400">to</span>
-                  <input
-                    type="text"
-                    className="w-24 px-2 py-1 rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:text-white sm:text-sm border"
-                    placeholder="5:00 PM"
-                    value={formatWorkingHours(workingHours2.end)}
-                    onChange={(e) => handleWorkingHoursChange(2, 'end', e.target.value)}
-                  />
                 </div>
               </div>
               
               {/* Display Options */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
                   Display Options
                 </label>
                 <div className="mt-1 space-y-2">
-                  <label className="inline-flex items-center">
-                    <input
-                      type="checkbox"
-                      className="form-checkbox text-blue-600"
-                      checked={showDate}
-                      onChange={(e) => setShowDate(e.target.checked)}
-                    />
-                    <span className="ml-2 dark:text-gray-300">Show date</span>
-                  </label>
-                  <label className="inline-flex items-center">
+                  <label className="flex items-center">
                     <input
                       type="checkbox"
                       className="form-checkbox text-blue-600"
                       checked={compact}
                       onChange={(e) => setCompact(e.target.checked)}
                     />
-                    <span className="ml-2 dark:text-gray-300">Compact mode</span>
+                    <span className="ml-2 text-sm dark:text-gray-300">Compact mode</span>
                   </label>
-                  <label className="inline-flex items-center">
+                  <label className="flex items-center">
+                    <input
+                      type="checkbox"
+                      className="form-checkbox text-blue-600"
+                      checked={showDate}
+                      onChange={(e) => setShowDate(e.target.checked)}
+                    />
+                    <span className="ml-2 text-sm dark:text-gray-300">Show date</span>
+                  </label>
+                  <label className="flex items-center">
                     <input
                       type="checkbox"
                       className="form-checkbox text-blue-600"
                       checked={showWorkingHours}
                       onChange={(e) => setShowWorkingHours(e.target.checked)}
                     />
-                    <span className="ml-2 dark:text-gray-300">Show working hours</span>
+                    <span className="ml-2 text-sm dark:text-gray-300">Show working hours</span>
+                  </label>
+                  <label className="flex items-center">
+                    <input
+                      type="checkbox"
+                      className="form-checkbox text-amber-500"
+                      checked={showMeetingTime}
+                      onChange={(e) => setShowMeetingTime(e.target.checked)}
+                    />
+                    <span className="ml-2 text-sm text-amber-600 dark:text-amber-300">Show meeting time</span>
                   </label>
                 </div>
               </div>
@@ -422,7 +626,7 @@ export default function EmbedPage() {
         <div>
           {/* Preview */}
           <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow mb-6">
-            <h2 className="text-xl font-semibold mb-4">Preview</h2>
+            <h2 className="text-xl font-semibold mb-4">Preview Widget</h2>
             <div>
               {origin && (
                 <EmbeddableWidget 
@@ -433,6 +637,14 @@ export default function EmbedPage() {
                   theme={theme}
                   showDate={showDate}
                   compact={compact}
+                  workingHours1Start={workingHours1.start}
+                  workingHours1End={workingHours1.end}
+                  workingHours2Start={workingHours2.start}
+                  workingHours2End={workingHours2.end}
+                  showWorkingHours={showWorkingHours}
+                  meetingTimeStart={meetingTime.start}
+                  meetingTimeEnd={meetingTime.end}
+                  showMeetingTime={showMeetingTime}
                 />
               )}
             </div>

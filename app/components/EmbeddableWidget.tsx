@@ -18,6 +18,9 @@ interface EmbeddableWidgetProps {
   workingHours2Start?: number;
   workingHours2End?: number;
   showWorkingHours?: boolean;
+  meetingTimeStart?: number;
+  meetingTimeEnd?: number;
+  showMeetingTime?: boolean;
 }
 
 export default function EmbeddableWidget({
@@ -32,14 +35,53 @@ export default function EmbeddableWidget({
   workingHours1End = 17,
   workingHours2Start = 9,
   workingHours2End = 17,
-  showWorkingHours = true
+  showWorkingHours = true,
+  meetingTimeStart = 13,
+  meetingTimeEnd = 14,
+  showMeetingTime = true
 }: EmbeddableWidgetProps) {
   const [currentTime, setCurrentTime] = useState<DateTime>(DateTime.now());
   const [hoveredHour, setHoveredHour] = useState<number | null>(null);
+  const [currentTheme, setCurrentTheme] = useState(theme);
+  
+  // Listen for theme changes in localStorage
+  useEffect(() => {
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'theme' && e.newValue) {
+        setCurrentTheme(e.newValue as 'light' | 'dark');
+      }
+    };
+    
+    // Handle theme change custom event
+    const handleThemeChange = (e: Event) => {
+      const customEvent = e as CustomEvent;
+      if (customEvent.detail && customEvent.detail.theme) {
+        setCurrentTheme(customEvent.detail.theme);
+      }
+    };
+    
+    // Also check localStorage on mount in case it's different from the prop
+    const savedTheme = typeof window !== 'undefined' ? localStorage.getItem('theme') as 'light' | 'dark' | null : null;
+    if (savedTheme && savedTheme !== theme) {
+      setCurrentTheme(savedTheme);
+    }
+    
+    window.addEventListener('storage', handleStorageChange);
+    window.addEventListener('themeChange', handleThemeChange);
+    
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('themeChange', handleThemeChange);
+    };
+  }, [theme]);
   
   // Use provided labels or get from timezone data
   const tz1Label = label1 || findTimezoneOption(timezone1).label;
   const tz2Label = label2 || findTimezoneOption(timezone2).label;
+  
+  // Limit location labels to 8 characters
+  const shortTz1Label = tz1Label.substring(0, 8);
+  const shortTz2Label = tz2Label.substring(0, 8);
   
   // Update time every minute
   useEffect(() => {
@@ -55,6 +97,7 @@ export default function EmbeddableWidget({
   const time2 = currentTime.setZone(timezone2);
   
   const timeFormat = 'h:mm a';
+  const shortTimeFormat = 'h a'; // Shorter format for meeting times (without minutes)
   const dateFormat = 'EEE, MMM d';
   
   // Calculate hour difference between timezones
@@ -126,11 +169,11 @@ export default function EmbeddableWidget({
   const currentTimeDecimal = getCurrentTimeDecimal();
   
   const getBgClass = () => {
-    return theme === 'dark' ? 'bg-gray-900 text-white' : 'bg-white text-gray-900';
+    return currentTheme === 'dark' ? 'bg-gray-900 text-white' : 'bg-white text-gray-900';
   };
   
   const getBorderClass = () => {
-    return theme === 'dark' ? 'border-gray-700' : 'border-gray-200';
+    return currentTheme === 'dark' ? 'border-gray-700' : 'border-gray-200';
   };
   
   // Calculate if two working hours overlap at a given hour
@@ -166,15 +209,24 @@ export default function EmbeddableWidget({
   
   // Determine colors based on theme
   const getLocation1Color = () => {
-    return theme === 'dark' ? 'bg-blue-500/50' : 'bg-blue-200';
+    return currentTheme === 'dark' ? 'bg-blue-500/50' : 'bg-blue-200';
   };
   
   const getLocation2Color = () => {
-    return theme === 'dark' ? 'bg-purple-500/50' : 'bg-purple-200';
+    return currentTheme === 'dark' ? 'bg-purple-500/50' : 'bg-purple-200';
   };
   
-  const getOverlapColor = () => {
-    return theme === 'dark' ? 'bg-green-500/50' : 'bg-green-200';
+  const getMeetingTimeColor = () => {
+    return currentTheme === 'dark' ? 'bg-amber-500/50' : 'bg-amber-200';
+  };
+  
+  // Check if current hour is meeting time
+  const isMeetingTime = (hour: number) => {
+    if (!showMeetingTime) return false;
+    
+    return meetingTimeStart <= meetingTimeEnd
+      ? hour >= meetingTimeStart && hour < meetingTimeEnd
+      : hour >= meetingTimeStart || hour < meetingTimeEnd;
   };
   
   return (
@@ -184,14 +236,14 @@ export default function EmbeddableWidget({
     >
       <div className="p-3">
         <div className="flex justify-between items-center">
-          <h3 className={`text-sm font-medium ${theme === 'dark' ? 'text-gray-200' : 'text-gray-500'}`}>
+          <h3 className={`text-sm font-medium ${currentTheme === 'dark' ? 'text-gray-200' : 'text-gray-500'}`}>
             Timezone Comparison
           </h3>
           <a 
             href="https://timezoneoverlap.net" 
             target="_blank" 
             rel="noopener noreferrer"
-            className={`text-xs ${theme === 'dark' ? 'text-blue-300 hover:text-blue-200' : 'text-blue-600 hover:text-blue-700'} hover:underline`}
+            className={`text-xs ${currentTheme === 'dark' ? 'text-blue-300 hover:text-blue-200' : 'text-blue-600 hover:text-blue-700'} hover:underline`}
           >
             timezoneoverlap.net
           </a>
@@ -199,16 +251,26 @@ export default function EmbeddableWidget({
         
         <div className={`mt-3 grid ${compact ? 'grid-cols-1 gap-2' : 'grid-cols-2 gap-4'}`}>
           {/* First Timezone */}
-          <div className={`p-2 rounded ${theme === 'dark' ? 'bg-gray-800' : 'bg-gray-50'}`}>
+          <div className={`p-2 rounded ${currentTheme === 'dark' ? 'bg-gray-800' : 'bg-gray-50'}`}>
             <div className="flex flex-col">
-              <span className={`text-xs font-medium ${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'}`}>
-                {tz1Label}
+              <span className={`text-xs font-medium ${currentTheme === 'dark' ? 'text-gray-300' : 'text-gray-600'}`}>
+                {shortTz1Label}
               </span>
-              <span className={`text-lg font-bold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
-                {time1.toFormat(timeFormat)}
+              {/* Meeting time takes prominence */}
+              {showMeetingTime && (
+                <div className="mb-1">
+                  <span className={`text-lg font-bold ${currentTheme === 'dark' ? 'text-amber-300' : 'text-amber-600'}`}>
+                    {time1.set({ hour: meetingTimeStart, minute: 0 }).toFormat(shortTimeFormat)} - {time1.set({ hour: meetingTimeEnd, minute: 0 }).toFormat(shortTimeFormat)}
+                  </span>
+                  <span className={`text-xs font-medium block ${currentTheme === 'dark' ? 'text-amber-300/80' : 'text-amber-600/80'}`}>Meeting Time</span>
+                </div>
+              )}
+              {/* Current time is secondary */}
+              <span className={`${showMeetingTime ? 'text-sm' : 'text-lg'} ${showMeetingTime ? '' : 'font-bold'} ${currentTheme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+                Current: {time1.toFormat(timeFormat)}
               </span>
               {showDate && (
-                <span className={`text-xs mt-1 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>
+                <span className={`text-xs mt-1 ${currentTheme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>
                   {time1.toFormat(dateFormat)}
                 </span>
               )}
@@ -216,16 +278,26 @@ export default function EmbeddableWidget({
           </div>
           
           {/* Second Timezone */}
-          <div className={`p-2 rounded ${theme === 'dark' ? 'bg-gray-800' : 'bg-gray-50'}`}>
+          <div className={`p-2 rounded ${currentTheme === 'dark' ? 'bg-gray-800' : 'bg-gray-50'}`}>
             <div className="flex flex-col">
-              <span className={`text-xs font-medium ${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'}`}>
-                {tz2Label}
+              <span className={`text-xs font-medium ${currentTheme === 'dark' ? 'text-gray-300' : 'text-gray-600'}`}>
+                {shortTz2Label}
               </span>
-              <span className={`text-lg font-bold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
-                {time2.toFormat(timeFormat)}
+              {/* Meeting time takes prominence */}
+              {showMeetingTime && (
+                <div className="mb-1">
+                  <span className={`text-lg font-bold ${currentTheme === 'dark' ? 'text-amber-300' : 'text-amber-600'}`}>
+                    {time2.set({ hour: (meetingTimeStart + hourDiff + 24) % 24, minute: 0 }).toFormat(shortTimeFormat)} - {time2.set({ hour: (meetingTimeEnd + hourDiff + 24) % 24, minute: 0 }).toFormat(shortTimeFormat)}
+                  </span>
+                  <span className={`text-xs font-medium block ${currentTheme === 'dark' ? 'text-amber-300/80' : 'text-amber-600/80'}`}>Meeting Time</span>
+                </div>
+              )}
+              {/* Current time is secondary */}
+              <span className={`${showMeetingTime ? 'text-sm' : 'text-lg'} ${showMeetingTime ? '' : 'font-bold'} ${currentTheme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+                Current: {time2.toFormat(timeFormat)}
               </span>
               {showDate && (
-                <span className={`text-xs mt-1 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>
+                <span className={`text-xs mt-1 ${currentTheme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>
                   {time2.toFormat(dateFormat)}
                 </span>
               )}
@@ -234,7 +306,7 @@ export default function EmbeddableWidget({
         </div>
         
         {/* Time Grid Visualization (Modern UX) */}
-        <div className={`mt-4 relative ${theme === 'dark' ? 'bg-gray-800' : 'bg-gray-50'} p-3 rounded`}>
+        <div className={`mt-4 relative ${currentTheme === 'dark' ? 'bg-gray-800' : 'bg-gray-50'} p-3 rounded`}>
           <div className="min-h-[70px]">
             {/* Time indicator line */}
             <div 
@@ -247,19 +319,20 @@ export default function EmbeddableWidget({
             
             {/* Time grid */}
             <div className="relative h-[70px]">
-              {/* Timezone labels */}
-              <div className="absolute left-0 h-full grid grid-rows-2 text-xs z-10">
-                <div className={`flex items-center ${theme === 'dark' ? 'text-blue-300' : 'text-blue-600'}`}>
+              {/* Timezone labels - removing these as requested */}
+              {/* <div className={`absolute left-0 h-full grid grid-rows-2 text-xs z-10 ${compact ? 'hidden' : ''}`}>
+                <div className={`flex items-center ${currentTheme === 'dark' ? 'text-blue-300' : 'text-blue-600'}`}>
                   <div className="w-2 h-2 rounded-full bg-blue-500 mr-1"></div>
-                  <span>{tz1Label.substring(0, compact ? 10 : 15)}</span>
+                  <span>{shortTz1Label}</span>
                 </div>
-                <div className={`flex items-center ${theme === 'dark' ? 'text-purple-300' : 'text-purple-600'}`}>
+                <div className={`flex items-center ${currentTheme === 'dark' ? 'text-purple-300' : 'text-purple-600'}`}>
                   <div className="w-2 h-2 rounded-full bg-purple-500 mr-1"></div>
-                  <span>{tz2Label.substring(0, compact ? 10 : 15)}</span>
+                  <span>{shortTz2Label}</span>
                 </div>
-              </div>
+              </div> */}
               
-              <div className="ml-[70px]">
+              {/* Removed ml-[70px] to use full width since location index is gone */}
+              <div className="w-full">
                 {/* First location row */}
                 <div className="grid grid-cols-[repeat(24,minmax(0,1fr))] gap-0 border-b border-gray-700 h-[35px]">
                   {timeSlots.map((timeSlot) => {
@@ -280,6 +353,11 @@ export default function EmbeddableWidget({
                     );
                     
                     const isOverlap = isOverlapping(timeSlot);
+                    const isMeetingHour = isMeetingTime(timeSlot);
+                    
+                    // Format the time for this slot
+                    const slotDateTime = DateTime.fromObject({ hour: Math.floor(timeSlot), minute: (timeSlot % 1) * 60 }).setZone(timezone1);
+                    const slotTimeString = slotDateTime.toFormat('h:mm a');
 
                     return (
                       <div
@@ -290,7 +368,8 @@ export default function EmbeddableWidget({
                       >
                         <div
                           className={`h-full ${
-                            isOverlap ? getOverlapColor() : isWorkingHour1 ? getLocation1Color() : 'bg-opacity-0'
+                            isMeetingHour ? getMeetingTimeColor() : 
+                            isWorkingHour1 ? getLocation1Color() : 'bg-opacity-0'
                           }`}
                         />
                         {hoveredHour === timeSlot && (
@@ -298,7 +377,11 @@ export default function EmbeddableWidget({
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
                             className="absolute top-0 left-0 right-0 h-full bg-white bg-opacity-20 z-10"
-                          />
+                          >
+                            <div className="absolute top-[-20px] left-[-10px] bg-gray-800 text-white text-xs p-1 rounded whitespace-nowrap z-20">
+                              {slotTimeString}
+                            </div>
+                          </motion.div>
                         )}
                       </div>
                     );
@@ -331,6 +414,11 @@ export default function EmbeddableWidget({
                     );
                     
                     const isOverlap = isOverlapping(timeSlot);
+                    const isMeetingHour = isMeetingTime(timeSlot);
+                    
+                    // Format the time for this slot in timezone2
+                    const slotDateTime = DateTime.fromObject({ hour: Math.floor(time2HourDecimal), minute: (time2HourDecimal % 1) * 60 }).setZone(timezone2);
+                    const slotTimeString = slotDateTime.toFormat('h:mm a');
 
                     return (
                       <div
@@ -341,7 +429,8 @@ export default function EmbeddableWidget({
                       >
                         <div
                           className={`h-full ${
-                            isOverlap ? getOverlapColor() : isWorkingHour2 ? getLocation2Color() : 'bg-opacity-0'
+                            isMeetingHour ? getMeetingTimeColor() : 
+                            isWorkingHour2 ? getLocation2Color() : 'bg-opacity-0'
                           }`}
                         />
                         {hoveredHour === timeSlot && (
@@ -349,7 +438,11 @@ export default function EmbeddableWidget({
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
                             className="absolute top-0 left-0 right-0 h-full bg-white bg-opacity-20 z-10"
-                          />
+                          >
+                            <div className="absolute bottom-[-20px] left-[-10px] bg-gray-800 text-white text-xs p-1 rounded whitespace-nowrap z-20">
+                              {slotTimeString}
+                            </div>
+                          </motion.div>
                         )}
                       </div>
                     );
@@ -360,32 +453,27 @@ export default function EmbeddableWidget({
             
             {/* Add legend for the working hours colors if showing working hours */}
             {showWorkingHours && (
-              <div className="mt-2 pt-2 border-t border-gray-700 grid grid-cols-3 gap-2 text-xs">
+              <div className="mt-2 pt-2 border-t border-gray-700 grid grid-cols-2 gap-2 text-xs">
                 <div className="flex items-center">
                   <div className={`w-3 h-3 mr-1 rounded ${getLocation1Color()}`}></div>
-                  <span className={theme === 'dark' ? 'text-gray-300' : 'text-gray-600'}>
-                    {tz1Label.split(' - ')[0]} hours
+                  <span className={currentTheme === 'dark' ? 'text-gray-300' : 'text-gray-600'}>
+                    {shortTz1Label} hrs
                   </span>
                 </div>
                 <div className="flex items-center">
                   <div className={`w-3 h-3 mr-1 rounded ${getLocation2Color()}`}></div>
-                  <span className={theme === 'dark' ? 'text-gray-300' : 'text-gray-600'}>
-                    {tz2Label.split(' - ')[0]} hours
+                  <span className={currentTheme === 'dark' ? 'text-gray-300' : 'text-gray-600'}>
+                    {shortTz2Label} hrs
                   </span>
                 </div>
-                <div className="flex items-center">
-                  <div className={`w-3 h-3 mr-1 rounded ${getOverlapColor()}`}></div>
-                  <span className={theme === 'dark' ? 'text-gray-300' : 'text-gray-600'}>Overlap</span>
-                </div>
+                {showMeetingTime && (
+                  <div className="flex items-center col-span-2">
+                    <div className={`w-3 h-3 mr-1 rounded ${getMeetingTimeColor()}`}></div>
+                    <span className={`font-medium ${currentTheme === 'dark' ? 'text-amber-300' : 'text-amber-600'}`}>Meeting Time</span>
+                  </div>
+                )}
               </div>
             )}
-            
-            {/* Time indicators at bottom */}
-            <div className="absolute bottom-0 left-0 right-0 flex justify-between text-[10px] text-gray-400 mt-1 ml-[70px]">
-              <span>12 AM</span>
-              <span>12 PM</span>
-              <span>11 PM</span>
-            </div>
           </div>
         </div>
       </div>

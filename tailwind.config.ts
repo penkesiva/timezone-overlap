@@ -18,8 +18,8 @@ const config: Config = {
           bright: '#60A5FA'
         },
         location2: {
-          DEFAULT: '#F6AD55',
-          bright: '#FBD38D'
+          DEFAULT: '#8B5CF6',
+          bright: '#A78BFA'
         },
         night: "#1a1a1a",
         dawn: "#ff7b54",

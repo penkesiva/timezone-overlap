@@ -35,6 +35,11 @@ export async function GET(request: Request) {
   const workingHours2End = parseInt(currentScript.getAttribute('data-working-hours2-end') || '17', 10);
   const showWorkingHours = currentScript.getAttribute('data-show-working-hours') !== 'false';
   
+  // Get meeting time configuration
+  const meetingTimeStart = parseInt(currentScript.getAttribute('data-meeting-time-start') || '13', 10);
+  const meetingTimeEnd = parseInt(currentScript.getAttribute('data-meeting-time-end') || '14', 10);
+  const showMeetingTime = currentScript.getAttribute('data-show-meeting-time') !== 'false';
+  
   // Replace the script with the container
   currentScript.parentNode.insertBefore(container, currentScript);
   
@@ -57,7 +62,10 @@ export async function GET(request: Request) {
       '&workingHours1End=' + workingHours1End +
       '&workingHours2Start=' + workingHours2Start +
       '&workingHours2End=' + workingHours2End +
-      '&showWorkingHours=' + (showWorkingHours ? 'true' : 'false')
+      '&showWorkingHours=' + (showWorkingHours ? 'true' : 'false') +
+      '&meetingTimeStart=' + meetingTimeStart +
+      '&meetingTimeEnd=' + meetingTimeEnd +
+      '&showMeetingTime=' + (showMeetingTime ? 'true' : 'false')
     )
     .then(response => response.text())
     .then(html => {

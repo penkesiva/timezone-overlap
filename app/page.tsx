@@ -142,6 +142,38 @@ const Select = dynamic(() => import('react-select'), {
   loading: () => <div className="h-10 bg-gray-800/50 rounded animate-pulse" />
 }) as typeof import('react-select').default;
 
+// Define select styles function that adapts to theme
+const getSelectStyles = (isDarkMode: boolean) => ({
+  control: (base: any) => ({
+    ...base,
+    backgroundColor: isDarkMode ? '#374151' : base.backgroundColor,
+    borderColor: isDarkMode ? '#4B5563' : base.borderColor,
+  }),
+  option: (base: any, state: any) => ({
+    ...base,
+    backgroundColor: isDarkMode 
+      ? (state.isSelected ? '#2563EB' : (state.isFocused ? '#4B5563' : '#1F2937'))
+      : (state.isSelected ? base.backgroundColor : (state.isFocused ? '#F3F4F6' : base.backgroundColor)),
+    color: isDarkMode ? '#F9FAFB' : base.color,
+  }),
+  menu: (base: any) => ({
+    ...base,
+    backgroundColor: isDarkMode ? '#1F2937' : base.backgroundColor,
+  }),
+  singleValue: (base: any) => ({
+    ...base,
+    color: isDarkMode ? '#F9FAFB' : base.color,
+  }),
+  input: (base: any) => ({
+    ...base,
+    color: isDarkMode ? '#F9FAFB' : base.color,
+  }),
+  placeholder: (base: any) => ({
+    ...base,
+    color: isDarkMode ? '#9CA3AF' : base.color,
+  }),
+});
+
 // Dynamically import Advertisement component
 const Advertisement = dynamic(() => import('./components/Advertisement'), {
   ssr: false,
@@ -182,6 +214,12 @@ export default function Home() {
   // Add working hours state
   const [workingHours1, setWorkingHours1] = useState({start: 9, end: 17});
   const [workingHours2, setWorkingHours2] = useState({start: 9, end: 17});
+  
+  // Add meeting time state
+  const [meetingTime, setMeetingTime] = useState({start: 13, end: 14});
+  const [showMeetingTime, setShowMeetingTime] = useState(true);
+
+  const [isDarkMode, setIsDarkMode] = useState(false);
 
   useEffect(() => {
     setMounted(true);
@@ -191,6 +229,19 @@ export default function Home() {
     
     updateTime();
     const interval = setInterval(updateTime, 1000);
+    
+    // Get initial theme state
+    const savedTheme = localStorage.getItem('theme') || 'dark';
+    setIsDarkMode(savedTheme === 'dark');
+    
+    // Listen for theme changes
+    const handleThemeChange = (e: CustomEvent) => {
+      if (e.detail?.theme) {
+        setIsDarkMode(e.detail.theme === 'dark');
+      }
+    };
+    
+    window.addEventListener('themeChange', handleThemeChange as EventListener);
     
     // Load saved timezones from localStorage if available
     try {
@@ -244,7 +295,10 @@ export default function Home() {
       console.error('Error accessing localStorage:', e);
     }
     
-    return () => clearInterval(interval);
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('themeChange', handleThemeChange as EventListener);
+    };
   }, []);
 
   // Save timezone selections to localStorage when they change
@@ -582,6 +636,195 @@ export default function Home() {
     return `${hour12}:00 ${period}`;
   };
 
+  // Improved time input handling with auto-complete for AM/PM
+  const handleTimeInputChange = (e: React.ChangeEvent<HTMLInputElement>, location: 1 | 2, type: 'start' | 'end') => {
+    let value = e.target.value;
+    
+    // Auto-complete AM/PM when user types 'a' or 'p'
+    if (value.endsWith('a') && !value.endsWith('am') && !value.endsWith('AM')) {
+      value = value.slice(0, -1) + 'AM';
+    } else if (value.endsWith('p') && !value.endsWith('pm') && !value.endsWith('PM')) {
+      value = value.slice(0, -1) + 'PM';
+    }
+    
+    // Update the input value
+    handleWorkingHoursChange(location, type, value);
+  };
+
+  // Helper function to check if a time slot is within working hours for a location
+  const isLocationWorkingHour = (timeSlot: number, locationIndex: number) => {
+    const hourDecimal = locationIndex === 1 ? 
+      timeSlot : 
+      (timeSlot + hourDiff + 48) % 24;
+    
+    const hour = Math.floor(hourDecimal);
+    const minute = (hourDecimal % 1) * 60;
+    const totalMinutes = hour * 60 + minute;
+    
+    const workingHours = locationIndex === 1 ? workingHours1 : workingHours2;
+    const workingStart = workingHours.start * 60;
+    const workingEnd = workingHours.end * 60;
+    
+    return (
+      workingHours.start <= workingHours.end
+        ? totalMinutes >= workingStart && totalMinutes < workingEnd
+        : totalMinutes >= workingStart || totalMinutes < workingEnd
+    );
+  };
+  
+  // Helper function to check if a time slot is within meeting hours
+  const isMeetingTimeSlot = (timeSlot: number) => {
+    const hour = Math.floor(timeSlot);
+    
+    return (
+      meetingTime.start <= meetingTime.end
+        ? hour >= meetingTime.start && hour < meetingTime.end
+        : hour >= meetingTime.start || hour < meetingTime.end
+    );
+  };
+  
+  // Helper function to check if selected time is in working hours for a location
+  const isSelectedTimeInWorkingHours = (locationIndex: number) => {
+    if (dragStartHour === null || dragEndHour === null) return false;
+    
+    // Check if any part of the selected time range is in working hours
+    for (let i = Math.min(dragStartHour, dragEndHour); i <= Math.max(dragStartHour, dragEndHour); i += 0.5) {
+      if (isLocationWorkingHour(i, locationIndex)) return true;
+    }
+    return false;
+  };
+  
+  // Helper function to check if selected time is in meeting hours
+  const isSelectedTimeInMeetingHours = () => {
+    if (dragStartHour === null || dragEndHour === null) return false;
+    
+    // Check if any part of the selected time range is in meeting hours
+    for (let i = Math.min(dragStartHour, dragEndHour); i <= Math.max(dragStartHour, dragEndHour); i += 0.5) {
+      if (isMeetingTimeSlot(i)) return true;
+    }
+    return false;
+  };
+  
+  // Helper function to format selected time for a timezone
+  const formatSelectedTime = (timezone = timezone1, hourOffset = 0) => {
+    if (dragStartHour === null || dragEndHour === null) return '';
+    
+    const startHour = Math.floor(Math.min(dragStartHour, dragEndHour));
+    const startMinute = (Math.min(dragStartHour, dragEndHour) % 1) * 60;
+    
+    const endHour = Math.floor(Math.max(dragStartHour, dragEndHour));
+    const endMinute = (Math.max(dragStartHour, dragEndHour) % 1) * 60;
+    
+    let startTime, endTime;
+    
+    if (hourOffset === 0) {
+      startTime = time1.set({ hour: startHour, minute: startMinute, second: 0 }).toFormat('h:mm a');
+      endTime = time1.set({ hour: endHour, minute: endMinute, second: 0 }).toFormat('h:mm a');
+    } else {
+      startTime = time2.set({ 
+        hour: (startHour + hourOffset + 48) % 24, 
+        minute: startMinute, 
+        second: 0 
+      }).toFormat('h:mm a');
+      endTime = time2.set({ 
+        hour: (endHour + hourOffset + 48) % 24, 
+        minute: endMinute, 
+        second: 0 
+      }).toFormat('h:mm a');
+    }
+    
+    return `${startTime} - ${endTime}`;
+  };
+  
+  // Helper function to calculate total selected hours
+  const formatTotalSelectedHours = () => {
+    if (dragStartHour === null || dragEndHour === null) return 0;
+    
+    return Math.abs(dragEndHour - dragStartHour);
+  };
+
+  // Helper function to get hours label
+  const getHoursLabel = (hour: number) => {
+    const hour12 = hour % 12 === 0 ? 12 : hour % 12;
+    const period = hour < 12 ? 'AM' : 'PM';
+    return `${hour12} ${period}`;
+  };
+
+  // Add this function to calculate the overlap duration between working hours
+  const getWorkingHoursOverlap = () => {
+    // Convert working hours to decimal for easier comparison
+    const tz1Start = workingHours1.start;
+    const tz1End = workingHours1.end;
+    const tz2StartInTz1 = (workingHours2.start - hourDiff + 24) % 24;
+    const tz2EndInTz1 = (workingHours2.end - hourDiff + 24) % 24;
+    
+    // Handle cases where working hours cross midnight
+    const tz1Range = tz1Start <= tz1End 
+      ? { start: tz1Start, end: tz1End }
+      : { start: tz1Start, end: tz1End + 24 };
+    
+    const tz2Range = tz2StartInTz1 <= tz2EndInTz1 
+      ? { start: tz2StartInTz1, end: tz2EndInTz1 }
+      : { start: tz2StartInTz1, end: tz2EndInTz1 + 24 };
+    
+    // Calculate overlap
+    const overlapStart = Math.max(tz1Range.start, tz2Range.start);
+    const overlapEnd = Math.min(tz1Range.end, tz2Range.end);
+    
+    // If there's no overlap, return 0
+    if (overlapStart >= overlapEnd) return 0;
+    
+    // Return overlap duration in hours
+    return overlapEnd - overlapStart;
+  };
+
+  // Calculate if selected time has overlap between timezones
+  const getSelectedTimeOverlap = () => {
+    if (dragStartHour === null || dragEndHour === null) return 0;
+    
+    const start = Math.min(dragStartHour, dragEndHour);
+    const end = Math.max(dragStartHour, dragEndHour);
+    
+    let overlapHours = 0;
+    
+    // Check each half-hour slot in the selection
+    for (let slot = start; slot <= end; slot += 0.5) {
+      // For each slot, check if it's a working hour in both timezones
+      const time1HourDecimal = slot;
+      const time2HourDecimal = (slot + hourDiff + 48) % 24;
+      
+      // Convert to total minutes for comparison
+      const time1TotalMinutes = time1HourDecimal * 60;
+      const time2TotalMinutes = time2HourDecimal * 60;
+      
+      // Convert working hours to total minutes
+      const workingStart1 = workingHours1.start * 60;
+      const workingEnd1 = workingHours1.end * 60;
+      const workingStart2 = workingHours2.start * 60;
+      const workingEnd2 = workingHours2.end * 60;
+      
+      // Check if both are working hours
+      const isWorkingHour1 = (
+        workingHours1.start <= workingHours1.end
+          ? time1TotalMinutes >= workingStart1 && time1TotalMinutes < workingEnd1
+          : time1TotalMinutes >= workingStart1 || time1TotalMinutes < workingEnd1
+      );
+      
+      const isWorkingHour2 = (
+        workingHours2.start <= workingHours2.end
+          ? time2TotalMinutes >= workingStart2 && time2TotalMinutes < workingEnd2
+          : time2TotalMinutes >= workingStart2 || time2TotalMinutes < workingEnd2
+      );
+      
+      // If both are working hours, add 0.5 hours to the overlap count
+      if (isWorkingHour1 && isWorkingHour2) {
+        overlapHours += 0.5;
+      }
+    }
+    
+    return overlapHours;
+  };
+
   if (!mounted) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -601,14 +844,6 @@ export default function Home() {
             Compare time zones and find overlapping working hours
           </p>
         </div>
-        <a 
-          href="https://github.com/penkesiva/timezone-overlap" 
-          target="_blank" 
-          rel="noopener noreferrer"
-          className="text-sm text-blue-600 dark:text-blue-300 hover:underline mt-4 md:mt-0"
-        >
-          View on GitHub
-        </a>
       </div>
 
       {/* Top banner ad */}
@@ -632,14 +867,14 @@ export default function Home() {
                   options={groupOptions}
                   value={timezone1}
                   onChange={(option) => option && setTimezone1(option)}
-                  className="text-gray-900"
+                  styles={getSelectStyles(isDarkMode)}
                   isSearchable
                   placeholder="Search timezone..."
                   classNamePrefix="select"
                 />
               </Suspense>
               {/* Location 1 Info Card */}
-              <div className="bg-gray-800 dark:bg-gray-800 p-3 rounded-lg space-y-2">
+              <div className="bg-white dark:bg-gray-800 p-3 rounded-lg space-y-2 border border-gray-200 dark:border-gray-700">
                 <div className="flex items-center space-x-2">
                   <ClockIcon className="h-5 w-5 text-location1" />
                   <div>
@@ -658,22 +893,22 @@ export default function Home() {
                 </div>
 
                 <div className="flex items-center space-x-2">
-                  <span className="text-sm text-gray-300">Working Hours:</span>
+                  <span className="text-sm text-gray-600 dark:text-gray-300">Working Hours:</span>
                   <div className="flex space-x-2 items-center">
                     <input
                       type="text"
-                      className="w-20 px-2 py-1 bg-gray-700 text-white text-sm rounded"
+                      className="w-20 px-2 py-1 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-800 dark:text-white text-sm rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
                       placeholder="9:00 AM"
                       value={formatWorkingHours(workingHours1.start)}
-                      onChange={(e) => handleWorkingHoursChange(1, 'start', e.target.value)}
+                      onChange={(e) => handleTimeInputChange(e, 1, 'start')}
                     />
-                    <span className="text-gray-400">to</span>
+                    <span className="text-gray-600 dark:text-gray-400">to</span>
                     <input
                       type="text"
-                      className="w-20 px-2 py-1 bg-gray-700 text-white text-sm rounded"
+                      className="w-20 px-2 py-1 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-800 dark:text-white text-sm rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
                       placeholder="5:00 PM"
                       value={formatWorkingHours(workingHours1.end)}
-                      onChange={(e) => handleWorkingHoursChange(1, 'end', e.target.value)}
+                      onChange={(e) => handleTimeInputChange(e, 1, 'end')}
                     />
                   </div>
                 </div>
@@ -687,18 +922,18 @@ export default function Home() {
                   options={groupOptions}
                   value={timezone2}
                   onChange={(option: TimezoneOption | null) => option && setTimezone2(option)}
-                  className="text-gray-900"
+                  styles={getSelectStyles(isDarkMode)}
                   isSearchable
                   placeholder="Search timezone..."
                   classNamePrefix="select"
                 />
               </Suspense>
               {/* Location 2 Info Card */}
-              <div className="bg-gray-800 dark:bg-gray-800 p-3 rounded-lg space-y-2">
+              <div className="bg-white dark:bg-gray-800 p-3 rounded-lg space-y-2 border border-gray-200 dark:border-gray-700">
                 <div className="flex items-center space-x-2">
                   <ClockIcon className="h-5 w-5 text-location2" />
                   <div>
-                    <span className="text-location2-bright font-mono tabular-nums dark:text-location2-bright text-orange-600">{time2.toFormat('h:mm a').padEnd(8, ' ')}</span>
+                    <span className="text-location2-bright font-mono tabular-nums dark:text-location2-bright text-purple-600">{time2.toFormat('h:mm a').padEnd(8, ' ')}</span>
                     <span className="text-gray-500 dark:text-gray-400 text-sm ml-2">
                       {time2.toFormat('EEE, MMM d')}
                     </span>
@@ -713,22 +948,22 @@ export default function Home() {
                 </div>
 
                 <div className="flex items-center space-x-2">
-                  <span className="text-sm text-gray-300">Working Hours:</span>
+                  <span className="text-sm text-gray-600 dark:text-gray-300">Working Hours:</span>
                   <div className="flex space-x-2 items-center">
                     <input
                       type="text"
-                      className="w-20 px-2 py-1 bg-gray-700 text-white text-sm rounded"
+                      className="w-20 px-2 py-1 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-800 dark:text-white text-sm rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
                       placeholder="9:00 AM"
                       value={formatWorkingHours(workingHours2.start)}
-                      onChange={(e) => handleWorkingHoursChange(2, 'start', e.target.value)}
+                      onChange={(e) => handleTimeInputChange(e, 2, 'start')}
                     />
-                    <span className="text-gray-400">to</span>
+                    <span className="text-gray-600 dark:text-gray-400">to</span>
                     <input
                       type="text"
-                      className="w-20 px-2 py-1 bg-gray-700 text-white text-sm rounded"
+                      className="w-20 px-2 py-1 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-800 dark:text-white text-sm rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
                       placeholder="5:00 PM"
                       value={formatWorkingHours(workingHours2.end)}
-                      onChange={(e) => handleWorkingHoursChange(2, 'end', e.target.value)}
+                      onChange={(e) => handleTimeInputChange(e, 2, 'end')}
                     />
                   </div>
                 </div>
@@ -736,59 +971,169 @@ export default function Home() {
             </div>
           </div>
 
-          <div className="relative bg-gray-800 rounded-lg p-6" {...swipeHandlers}>
+          <div className="relative bg-white dark:bg-gray-800 rounded-lg p-6 border border-gray-200 dark:border-gray-700" {...swipeHandlers}>
             {/* Add swipe instruction for mobile */}
             <div className="md:hidden text-sm text-gray-400 mb-4 text-center">
               Swipe left or right to change time
             </div>
             
             {/* Add color legend */}
-            <div className="flex flex-wrap gap-4 mb-4 text-sm">
-              <div className="flex items-center gap-2">
-                <div className="w-4 h-4 bg-location1 bg-opacity-50 rounded"></div>
-                <span className="text-location1-bright">{timezone1.label}</span>
+            <div className="mt-6 border-t border-gray-700 pt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <h3 className="text-lg font-semibold mb-4 text-white">Color Legend</h3>
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2">
+                    <div className="w-4 h-4 bg-blue-600 bg-opacity-50 dark:bg-blue-500 dark:bg-opacity-50 rounded"></div>
+                    <span className="text-blue-700 dark:text-location1-bright">{timezone1.label}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-4 h-4 bg-purple-600 bg-opacity-50 dark:bg-purple-500 dark:bg-opacity-50 rounded"></div>
+                    <span className="text-purple-700 dark:text-location2-bright">{timezone2.label}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-4 h-4 bg-amber-600 bg-opacity-50 dark:bg-amber-500 dark:bg-opacity-50 rounded"></div>
+                    <span className="text-amber-700 dark:text-amber-300">Meeting Time</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-0.5 h-4 bg-white"></div>
+                    <span className="text-white">Current local time</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <input 
+                      type="checkbox" 
+                      id="show-overlaps" 
+                      checked={showOverlaps} 
+                      onChange={(e) => setShowOverlaps(e.target.checked)}
+                      className="h-4 w-4 rounded bg-gray-700 border-gray-600 text-location1-bright focus:ring-location1-bright"
+                    />
+                    <label htmlFor="show-overlaps" className="text-gray-700 dark:text-gray-300">Show overlapping hours</label>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <input 
+                      type="checkbox" 
+                      id="show-meeting-time" 
+                      checked={showMeetingTime} 
+                      onChange={(e) => setShowMeetingTime(e.target.checked)}
+                      className="h-4 w-4 rounded bg-gray-700 border-gray-600 text-amber-400 focus:ring-amber-400"
+                    />
+                    <label htmlFor="show-meeting-time" className="text-gray-700 dark:text-gray-300">Show meeting time</label>
+                  </div>
+                </div>
               </div>
-              <div className="flex items-center gap-2">
-                <div className="w-4 h-4 bg-location2 bg-opacity-50 rounded"></div>
-                <span className="text-location2-bright">{timezone2.label}</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-0.5 h-4 bg-white"></div>
-                <span className="text-white">Current local time</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <input 
-                  type="checkbox" 
-                  id="show-overlaps" 
-                  checked={showOverlaps} 
-                  onChange={(e) => setShowOverlaps(e.target.checked)}
-                  className="h-4 w-4 rounded bg-gray-700 border-gray-600 text-location1-bright focus:ring-location1-bright"
-                />
-                <label htmlFor="show-overlaps" className="text-gray-300">Show overlapping hours</label>
-              </div>
+
+              {/* Meeting Time Card */}
+              {showMeetingTime && (
+                <div className="bg-white dark:bg-gray-800 p-4 rounded-lg border border-gray-200 dark:border-gray-700">
+                  <h3 className="text-lg font-semibold mb-2 text-amber-700 dark:text-amber-300">Meeting Time</h3>
+                  <div className="grid grid-cols-2 gap-4 mb-4">
+                    <div>
+                      <label htmlFor="meeting-start" className="block text-sm text-gray-600 dark:text-gray-400 mb-1">Start Time</label>
+                      <input
+                        type="text"
+                        id="meeting-start"
+                        className="w-full bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded py-2 px-3 text-gray-800 dark:text-white focus:ring-1 focus:ring-amber-500 focus:border-amber-500"
+                        value={formatWorkingHours(meetingTime.start)}
+                        onChange={(e) => {
+                          let value = e.target.value;
+                          // Auto-complete AM/PM
+                          if (value.endsWith('a') && !value.endsWith('am') && !value.endsWith('AM')) {
+                            value = value.slice(0, -1) + 'AM';
+                          } else if (value.endsWith('p') && !value.endsWith('pm') && !value.endsWith('PM')) {
+                            value = value.slice(0, -1) + 'PM';
+                          }
+                          
+                          // Parse the time and set state
+                          try {
+                            const timeParts = value.match(/(\d+)(?::(\d+))?\s*(am|pm|a|p)?/i);
+                            if (timeParts) {
+                              let hour = parseInt(timeParts[1], 10);
+                              const ampm = timeParts[3] ? timeParts[3].toLowerCase() : null;
+                              
+                              if (ampm === 'pm' || ampm === 'p') {
+                                if (hour < 12) hour += 12;
+                              } else if (ampm === 'am' || ampm === 'a') {
+                                if (hour === 12) hour = 0;
+                              }
+                              
+                              if (hour >= 0 && hour <= 23) {
+                                setMeetingTime(prev => ({ ...prev, start: hour }));
+                              }
+                            }
+                          } catch (error) {
+                            console.error("Error parsing time:", error);
+                          }
+                        }}
+                        placeholder="9:00 AM"
+                      />
+                    </div>
+                    <div>
+                      <label htmlFor="meeting-end" className="block text-sm text-gray-600 dark:text-gray-400 mb-1">End Time</label>
+                      <input
+                        type="text"
+                        id="meeting-end"
+                        className="w-full bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded py-2 px-3 text-gray-800 dark:text-white focus:ring-1 focus:ring-amber-500 focus:border-amber-500"
+                        value={formatWorkingHours(meetingTime.end)}
+                        onChange={(e) => {
+                          let value = e.target.value;
+                          // Auto-complete AM/PM
+                          if (value.endsWith('a') && !value.endsWith('am') && !value.endsWith('AM')) {
+                            value = value.slice(0, -1) + 'AM';
+                          } else if (value.endsWith('p') && !value.endsWith('pm') && !value.endsWith('PM')) {
+                            value = value.slice(0, -1) + 'PM';
+                          }
+                          
+                          // Parse the time and set state
+                          try {
+                            const timeParts = value.match(/(\d+)(?::(\d+))?\s*(am|pm|a|p)?/i);
+                            if (timeParts) {
+                              let hour = parseInt(timeParts[1], 10);
+                              const ampm = timeParts[3] ? timeParts[3].toLowerCase() : null;
+                              
+                              if (ampm === 'pm' || ampm === 'p') {
+                                if (hour < 12) hour += 12;
+                              } else if (ampm === 'am' || ampm === 'a') {
+                                if (hour === 12) hour = 0;
+                              }
+                              
+                              if (hour >= 0 && hour <= 23) {
+                                setMeetingTime(prev => ({ ...prev, end: hour }));
+                              }
+                            }
+                          } catch (error) {
+                            console.error("Error parsing time:", error);
+                          }
+                        }}
+                        placeholder="5:00 PM"
+                      />
+                    </div>
+                  </div>
+                  <div className="mb-2">
+                    <div className="flex justify-between items-center">
+                      <div>
+                        <span className="text-sm text-gray-600 dark:text-gray-400">{timezone1.label.split(' - ')[0]}</span>
+                        <div className="text-lg font-bold text-amber-700 dark:text-amber-300">
+                          {time1.set({ hour: meetingTime.start, minute: 0 }).toFormat('h a')} - {time1.set({ hour: meetingTime.end, minute: 0 }).toFormat('h a')}
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <span className="text-sm text-gray-600 dark:text-gray-400">{timezone2.label.split(' - ')[0]}</span>
+                        <div className="text-lg font-bold text-amber-700 dark:text-amber-300">
+                          {time2.set({ hour: (meetingTime.start + hourDiff + 24) % 24, minute: 0 }).toFormat('h a')} - {time2.set({ hour: (meetingTime.end + hourDiff + 24) % 24, minute: 0 }).toFormat('h a')}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
 
-            <div className="relative">
-              {/* Current time indicator */}
-              {currentTime && (
-                <div 
-                  className="absolute top-0 bottom-0 w-0.5 bg-white z-10"
-                  style={{ 
-                    left: `${(getCurrentTimeDecimal() / 24) * 100}%`,
-                    boxShadow: '0 0 4px rgba(255, 255, 255, 0.7)'
-                  }}
-                />
-              )}
-              
-              {/* Modify the div that contains both location rows to add a relative position */}
-              <div className="grid grid-rows-2 h-32 relative">
-                {/* Location labels */}
-                <div className="absolute -left-24 top-0 h-full flex flex-col justify-around text-xs">
-                  <div className="text-location1-bright">{timezone1.label.split(' - ')[0]}</div>
-                  <div className="text-location2-bright">{timezone2.label.split(' - ')[0]}</div>
-                </div>
-
-                {/* Selection overlay that spans both rows */}
+            {/* Time Grid Visualization with Hover */}
+            <div 
+              className="mt-4 relative overflow-hidden rounded-lg"
+              onMouseLeave={() => setHoveredHour(null)}
+            >
+              <div className="h-[180px] relative">
+                {/* Highlight selected range */}
                 {(() => {
                   const selectedRange = getSelectedTimeRange();
                   if (selectedRange.length > 0) {
@@ -813,7 +1158,7 @@ export default function Home() {
                 })()}
 
                 {/* First location row - now with 48 columns */}
-                <div className="grid grid-cols-[repeat(48,minmax(0,1fr))] gap-0 border-b border-gray-700">
+                <div className="grid grid-cols-[repeat(48,minmax(0,1fr))] gap-0 h-[90px]">
                   {timeSlots.map((timeSlot) => {
                     const time1HourDecimal = timeSlot;
                     const time2HourDecimal = (timeSlot + hourDiff + 48) % 24;
@@ -846,46 +1191,47 @@ export default function Home() {
                     );
                     const isOverlap = isWorkingHour1 && isWorkingHour2;
                     
+                    // Check if this hour is a meeting time
+                    const isMeetingHour = showMeetingTime && (
+                      meetingTime.start <= meetingTime.end
+                        ? time1Hour >= meetingTime.start && time1Hour < meetingTime.end
+                        : time1Hour >= meetingTime.start || time1Hour < meetingTime.end
+                    );
+                    
                     // Check if this time slot is in the selected range
-                    const selectedRange = getSelectedTimeRange();
-                    const isInSelectedRange = selectedRange.includes(timeSlot);
+                    const isInSelectedRange = dragStartHour !== null && dragEndHour !== null
+                      ? (dragStartHour <= dragEndHour
+                          ? timeSlot >= dragStartHour && timeSlot <= dragEndHour
+                          : timeSlot >= dragStartHour || timeSlot <= dragEndHour)
+                      : false;
 
                     return (
                       <div
-                        key={`loc1-${timeSlot}`}
-                        className={`relative h-full cursor-pointer ${
-                          timeSlot % 1 !== 0 ? 'border-r border-dashed border-gray-700/50' : 'border-r border-gray-700'
-                        }`}
-                        onMouseEnter={() => {
-                          setHoveredHour(timeSlot);
-                          handleMouseMove(timeSlot);
-                        }}
-                        onMouseLeave={() => setHoveredHour(null)}
-                        onMouseDown={() => handleMouseDown(timeSlot)}
-                        onMouseUp={handleMouseUp}
+                        key={`tz1-${timeSlot}`}
+                        className={`
+                          relative h-full border-r border-gray-700 border-opacity-30 cursor-pointer
+                          ${isInSelectedRange ? 'bg-white bg-opacity-20' : ''}
+                        `}
+                        onMouseEnter={() => setHoveredHour(timeSlot)}
+                        onMouseDown={(e) => handleMouseDown(timeSlot)}
+                        onMouseMove={(e) => handleMouseMove(timeSlot)}
+                        onMouseUp={() => handleMouseUp()}
                       >
                         <div
-                          className={`h-full ${
-                            isWorkingHour1 ? 'bg-location1 bg-opacity-50' : 'bg-opacity-0'
-                          }`}
-                        />
-                        {showOverlaps && isOverlap && (
-                          <div className="absolute inset-0 bg-white bg-opacity-20" />
-                        )}
-                        {hoveredHour === timeSlot && (
-                          <motion.div
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            className="absolute top-0 left-0 right-0 h-full bg-white bg-opacity-20 z-10"
-                          />
-                        )}
+                          className={`
+                            h-full 
+                            ${isMeetingHour ? 'bg-amber-600 bg-opacity-50 dark:bg-amber-500 dark:bg-opacity-50' :
+                              showOverlaps && isOverlap ? 'bg-indigo-600 bg-opacity-40 dark:bg-indigo-500 dark:bg-opacity-40' :
+                              isWorkingHour1 ? 'bg-blue-600 bg-opacity-50 dark:bg-blue-500 dark:bg-opacity-50' : ''}
+                          `}
+                        ></div>
                       </div>
                     );
                   })}
                 </div>
                 
                 {/* Second location row - now with 48 columns */}
-                <div className="grid grid-cols-[repeat(48,minmax(0,1fr))] gap-0">
+                <div className="grid grid-cols-[repeat(48,minmax(0,1fr))] gap-0 mt-[1px]">
                   {timeSlots.map((timeSlot) => {
                     const time1HourDecimal = timeSlot;
                     const time2HourDecimal = (timeSlot + hourDiff + 48) % 24;
@@ -918,273 +1264,360 @@ export default function Home() {
                     );
                     const isOverlap = isWorkingHour1 && isWorkingHour2;
                     
+                    // Check if this hour is a meeting time
+                    const isMeetingHour = showMeetingTime && (
+                      meetingTime.start <= meetingTime.end
+                        ? time1Hour >= meetingTime.start && time1Hour < meetingTime.end
+                        : time1Hour >= meetingTime.start || time1Hour < meetingTime.end
+                    );
+                    
                     // Check if this time slot is in the selected range
-                    const selectedRange = getSelectedTimeRange();
-                    const isInSelectedRange = selectedRange.includes(timeSlot);
+                    const isInSelectedRange = dragStartHour !== null && dragEndHour !== null
+                      ? (dragStartHour <= dragEndHour
+                          ? timeSlot >= dragStartHour && timeSlot <= dragEndHour
+                          : timeSlot >= dragStartHour || timeSlot <= dragEndHour)
+                      : false;
 
                     return (
                       <div
-                        key={`loc2-${timeSlot}`}
-                        className={`relative h-full cursor-pointer ${
-                          timeSlot % 1 !== 0 ? 'border-r border-dashed border-gray-700/50' : 'border-r border-gray-700'
-                        }`}
-                        onMouseEnter={() => {
-                          setHoveredHour(timeSlot);
-                          handleMouseMove(timeSlot);
-                        }}
-                        onMouseLeave={() => setHoveredHour(null)}
-                        onMouseDown={() => handleMouseDown(timeSlot)}
-                        onMouseUp={handleMouseUp}
+                        key={`tz2-${timeSlot}`}
+                        className={`
+                          relative h-full border-r border-gray-700 border-opacity-30 cursor-pointer
+                          ${isInSelectedRange ? 'bg-white bg-opacity-20' : ''}
+                        `}
+                        onMouseEnter={() => setHoveredHour(timeSlot)}
+                        onMouseDown={(e) => handleMouseDown(timeSlot)}
+                        onMouseMove={(e) => handleMouseMove(timeSlot)}
+                        onMouseUp={() => handleMouseUp()}
                       >
                         <div
-                          className={`h-full ${
-                            isWorkingHour2 ? 'bg-location2 bg-opacity-50' : 'bg-opacity-0'
-                          }`}
-                        />
-                        {showOverlaps && isOverlap && (
-                          <div className="absolute inset-0 bg-white bg-opacity-20" />
-                        )}
-                        {hoveredHour === timeSlot && (
-                          <motion.div
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            className="absolute top-0 left-0 right-0 h-full bg-white bg-opacity-20 z-10"
-                          />
-                        )}
+                          className={`
+                            h-full 
+                            ${isMeetingHour ? 'bg-amber-600 bg-opacity-50 dark:bg-amber-500 dark:bg-opacity-50' :
+                              showOverlaps && isOverlap ? 'bg-indigo-600 bg-opacity-40 dark:bg-indigo-500 dark:bg-opacity-40' :
+                              isWorkingHour2 ? 'bg-purple-600 bg-opacity-50 dark:bg-purple-500 dark:bg-opacity-50' : ''}
+                          `}
+                        ></div>
                       </div>
                     );
                   })}
                 </div>
               </div>
               
-              {/* Hover tooltip - updated for half-hour slots */}
+              {/* Simplified hover tooltip - similar to the Preview Widget */}
               {hoveredHour !== null && (
-                <div className="absolute -top-8 left-1/2 transform -translate-x-1/2 bg-gray-900 px-3 py-1 rounded text-sm whitespace-nowrap shadow-lg z-20">
-                  <span className={`font-mono tabular-nums ${
-                    // Convert to minutes for comparison
-                    (() => {
-                      const hour = Math.floor(hoveredHour);
-                      const minute = (hoveredHour % 1) * 60;
-                      const totalMinutes = hour * 60 + minute;
-                      const workingStart = workingHours1.start * 60;
-                      const workingEnd = workingHours1.end * 60;
-                      
-                      return (workingHours1.start <= workingHours1.end
-                        ? totalMinutes >= workingStart && totalMinutes < workingEnd
-                        : totalMinutes >= workingStart || totalMinutes < workingEnd)
-                        ? 'text-location1-bright' : 'text-location1';
-                    })()
-                  }`}>
-                    {(() => {
-                      const hour = Math.floor(hoveredHour);
-                      const minute = hoveredHour % 1 === 0 ? 0 : 30;
-                      return time1.set({ hour, minute, second: 0 }).toFormat('h:mm a').padEnd(8, ' ');
-                    })()}
-                  </span>
-                  {' / '}
-                  <span className={`font-mono tabular-nums ${
-                    // Convert to minutes for comparison
-                    (() => {
-                      const hourDecimal = (hoveredHour + hourDiff + 48) % 24;
-                      const hour = Math.floor(hourDecimal);
-                      const minute = (hourDecimal % 1) * 60;
-                      const totalMinutes = hour * 60 + minute;
-                      const workingStart = workingHours2.start * 60;
-                      const workingEnd = workingHours2.end * 60;
-                      
-                      return (workingHours2.start <= workingHours2.end
-                        ? totalMinutes >= workingStart && totalMinutes < workingEnd
-                        : totalMinutes >= workingStart || totalMinutes < workingEnd)
-                        ? 'text-location2-bright' : 'text-location2';
-                    })()
-                  }`}>
-                    {(() => {
-                      const hourDecimal = (hoveredHour + hourDiff + 48) % 24;
-                      const hour = Math.floor(hourDecimal);
-                      const minute = Math.round((hourDecimal % 1) * 60);
-                      return time2.set({ hour, minute, second: 0 }).toFormat('h:mm a').padEnd(8, ' ');
-                    })()}
-                  </span>
-                  
-                  {/* Show hours selected during drag */}
-                  {isDragging && dragStartHour !== null && dragEndHour !== null && (
-                    <div className="mt-1 text-xs text-white bg-gray-700 px-2 py-1 rounded">
-                      {getTotalHoursSelected()} hour{getTotalHoursSelected() !== 1 ? 's' : ''} selected
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className="absolute top-0 left-0 w-full h-full pointer-events-none"
+                >
+                  {/* Position the tooltip based on hovered hour */}
+                  <div 
+                    className="absolute bg-gray-800 text-white text-xs p-2 rounded shadow-lg z-50"
+                    style={{
+                      left: `${(hoveredHour / 24) * 100}%`,
+                      top: '50%',
+                      transform: 'translate(-50%, -50%)'
+                    }}
+                  >
+                    <div className="flex flex-col items-center gap-1">
+                      <div className="font-medium">
+                        {time1.set({ hour: Math.floor(hoveredHour), minute: (hoveredHour % 1) * 60 }).toFormat('h:mm a')}
+                      </div>
+                      <div className="font-medium">
+                        {time2.set({ hour: Math.floor((hoveredHour + hourDiff + 48) % 24), minute: ((hoveredHour + hourDiff + 48) % 1) * 60 }).toFormat('h:mm a')}
+                      </div>
                     </div>
-                  )}
-                </div>
+                  </div>
+                </motion.div>
               )}
             </div>
             
-            <div className="absolute bottom-2 left-4 right-4 flex justify-between text-sm text-gray-400">
+            <div className="mt-2 flex justify-between text-sm text-gray-600 dark:text-gray-400">
               <span>12:00 AM</span>
               <span>12:00 PM</span>
               <span>11:30 PM</span>
             </div>
           </div>
 
-          {/* Selected Time Slot Display - updated for multiple slots */}
+          {/* Selected Time Slot */}
           {(dragStartHour !== null && dragEndHour !== null) || selectedHour !== null ? (
-            <div className="mt-6 p-4 bg-gray-800 rounded-lg">
-              <div className="flex items-center justify-between mb-2">
-                <h3 className="text-sm font-medium text-gray-300">
-                  {dragStartHour !== null && dragEndHour !== null ? 
-                    `Selected Time Range (${getTotalHoursSelected()} hour${getTotalHoursSelected() !== 1 ? 's' : ''}):` : 
-                    'Selected Time Slot:'}
-                </h3>
-                <button
-                  onClick={copySelectedSlot}
-                  className={`flex items-center space-x-2 px-4 py-2 rounded-lg transition-colors ${
-                    slotCopySuccess ? 'bg-green-600 text-white' : 'bg-gray-700 hover:bg-gray-600 text-white dark:text-white'
-                  }`}
-                  aria-label={slotCopySuccess ? "Time slot copied" : "Copy selected time slot"}
-                >
-                  <span className="text-sm font-medium">{slotCopySuccess ? 'Copied!' : 'Copy'}</span>
-                  {slotCopySuccess ? (
-                    <CheckIcon className="h-5 w-5" />
-                  ) : (
-                    <ClipboardIcon className="h-5 w-5" />
-                  )}
-                </button>
+            <div className="mt-6 p-4 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm">
+              <h3 className="text-lg font-semibold mb-4 text-gray-800 dark:text-white">Selected Time</h3>
+              
+              {/* Move the Time Grid here */}
+              <div className="mb-6 relative overflow-hidden rounded-lg border border-gray-200 dark:border-gray-700">
+                <div className="h-[110px] relative">
+                  {/* First location row */}
+                  <div className="grid grid-cols-[repeat(48,minmax(0,1fr))] gap-0 h-[54px]">
+                    {timeSlots.map((timeSlot) => {
+                      const time1HourDecimal = timeSlot;
+                      const time1Hour = Math.floor(time1HourDecimal);
+                      const time1Minute = (time1HourDecimal % 1) * 60;
+                      const time1TotalMinutes = time1Hour * 60 + time1Minute;
+                      
+                      // Convert working hours to total minutes for comparison
+                      const workingStart1 = workingHours1.start * 60;
+                      const workingEnd1 = workingHours1.end * 60;
+                      
+                      // Check if working hour
+                      const isWorkingHour1 = (
+                        workingHours1.start <= workingHours1.end
+                          ? time1TotalMinutes >= workingStart1 && time1TotalMinutes < workingEnd1
+                        : time1TotalMinutes >= workingStart1 || time1TotalMinutes < workingEnd1
+                      );
+                      
+                      // Check if meeting hour
+                      const isMeetingHour = showMeetingTime && (
+                        meetingTime.start <= meetingTime.end
+                          ? time1Hour >= meetingTime.start && time1Hour < meetingTime.end
+                        : time1Hour >= meetingTime.start || time1Hour < meetingTime.end
+                      );
+                      
+                      // Check if in selected range
+                      const isInSelectedRange = dragStartHour !== null && dragEndHour !== null
+                        ? (dragStartHour <= dragEndHour
+                            ? timeSlot >= dragStartHour && timeSlot <= dragEndHour
+                          : timeSlot >= dragStartHour || timeSlot <= dragEndHour)
+                        : false;
+                        
+                      // Get the time2 equivalent for this slot to check overlap
+                      const time2HourDecimal = (timeSlot + hourDiff + 48) % 24;
+                      const time2Hour = Math.floor(time2HourDecimal);
+                      const time2Minute = (time2HourDecimal % 1) * 60;
+                      const time2TotalMinutes = time2Hour * 60 + time2Minute;
+                      
+                      const workingStart2 = workingHours2.start * 60;
+                      const workingEnd2 = workingHours2.end * 60;
+                      
+                      const isWorkingHour2 = (
+                        workingHours2.start <= workingHours2.end
+                          ? time2TotalMinutes >= workingStart2 && time2TotalMinutes < workingEnd2
+                        : time2TotalMinutes >= workingStart2 || time2TotalMinutes < workingEnd2
+                      );
+                      
+                      const isOverlap = isWorkingHour1 && isWorkingHour2;
+
+                      return (
+                        <div
+                          key={`panel-tz1-${timeSlot}`}
+                          className={`
+                            relative h-full border-r border-gray-200 dark:border-gray-700 border-opacity-30
+                            ${isInSelectedRange ? 'bg-white bg-opacity-20' : ''}
+                          `}
+                        >
+                          <div
+                            className={`
+                              h-full 
+                              ${isMeetingHour ? 'bg-amber-600 bg-opacity-50 dark:bg-amber-500 dark:bg-opacity-50' :
+                                showOverlaps && isOverlap ? 'bg-indigo-600 bg-opacity-40 dark:bg-indigo-500 dark:bg-opacity-40' :
+                                isWorkingHour1 ? 'bg-blue-600 bg-opacity-50 dark:bg-blue-500 dark:bg-opacity-50' : ''}
+                            `}
+                          ></div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  
+                  {/* Second location row */}
+                  <div className="grid grid-cols-[repeat(48,minmax(0,1fr))] gap-0 h-[54px] mt-[2px]">
+                    {timeSlots.map((timeSlot) => {
+                      const time2HourDecimal = (timeSlot + hourDiff + 48) % 24;
+                      const time2Hour = Math.floor(time2HourDecimal);
+                      const time2Minute = (time2HourDecimal % 1) * 60;
+                      const time2TotalMinutes = time2Hour * 60 + time2Minute;
+                      
+                      // Convert working hours to total minutes for comparison
+                      const workingStart2 = workingHours2.start * 60;
+                      const workingEnd2 = workingHours2.end * 60;
+                      
+                      // Check if working hour
+                      const isWorkingHour2 = (
+                        workingHours2.start <= workingHours2.end
+                          ? time2TotalMinutes >= workingStart2 && time2TotalMinutes < workingEnd2
+                        : time2TotalMinutes >= workingStart2 || time2TotalMinutes < workingEnd2
+                      );
+                      
+                      // Also check timezone1 for this slot to determine overlap
+                      const time1HourDecimal = timeSlot;
+                      const time1Hour = Math.floor(time1HourDecimal);
+                      const time1Minute = (time1HourDecimal % 1) * 60;
+                      const time1TotalMinutes = time1Hour * 60 + time1Minute;
+                      
+                      const workingStart1 = workingHours1.start * 60;
+                      const workingEnd1 = workingHours1.end * 60;
+                      
+                      const isWorkingHour1 = (
+                        workingHours1.start <= workingHours1.end
+                          ? time1TotalMinutes >= workingStart1 && time1TotalMinutes < workingEnd1
+                        : time1TotalMinutes >= workingStart1 || time1TotalMinutes < workingEnd1
+                      );
+                      
+                      const isOverlap = isWorkingHour1 && isWorkingHour2;
+                      
+                      // Check if meeting hour
+                      const isMeetingHour = showMeetingTime && (
+                        meetingTime.start <= meetingTime.end
+                          ? time1Hour >= meetingTime.start && time1Hour < meetingTime.end
+                        : time1Hour >= meetingTime.start || time1Hour < meetingTime.end
+                      );
+                      
+                      // Check if in selected range
+                      const isInSelectedRange = dragStartHour !== null && dragEndHour !== null
+                        ? (dragStartHour <= dragEndHour
+                            ? timeSlot >= dragStartHour && timeSlot <= dragEndHour
+                          : timeSlot >= dragStartHour || timeSlot <= dragEndHour)
+                        : false;
+
+                      return (
+                        <div
+                          key={`panel-tz2-${timeSlot}`}
+                          className={`
+                            relative h-full border-r border-gray-200 dark:border-gray-700 border-opacity-30
+                            ${isInSelectedRange ? 'bg-white bg-opacity-20' : ''}
+                          `}
+                        >
+                          <div
+                            className={`
+                              h-full 
+                              ${isMeetingHour ? 'bg-amber-600 bg-opacity-50 dark:bg-amber-500 dark:bg-opacity-50' :
+                                showOverlaps && isOverlap ? 'bg-indigo-600 bg-opacity-40 dark:bg-indigo-500 dark:bg-opacity-40' :
+                                isWorkingHour2 ? 'bg-purple-600 bg-opacity-50 dark:bg-purple-500 dark:bg-opacity-50' : ''}
+                            `}
+                          ></div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+                
+                {/* Time labels */}
+                <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400 mt-1 px-1">
+                  <span>12a</span>
+                  <span>6a</span>
+                  <span>12p</span>
+                  <span>6p</span>
+                  <span>12a</span>
+                </div>
               </div>
               
-              <div className="space-y-4">
-                {/* First location */}
-                <div className="p-3 bg-gray-700/30 rounded-lg">
-                  <div className="flex items-center space-x-2 mb-1">
-                    <div className="w-3 h-3 bg-location1 rounded-full"></div>
-                    <h4 className="text-sm font-medium text-gray-300">{timezone1.label}</h4>
+              {/* Time information */}
+              <div className="grid grid-cols-2 gap-4 mb-4">
+                <div>
+                  <span className="block text-sm text-gray-600 dark:text-gray-400">{timezone1.label.split(' - ')[0]}</span>
+                  <span className="block text-lg font-bold text-gray-800 dark:text-white">
+                    {formatSelectedTime()}
+                  </span>
+                </div>
+                <div>
+                  <span className="block text-sm text-gray-600 dark:text-gray-400">{timezone2.label.split(' - ')[0]}</span>
+                  <span className="block text-lg font-bold text-gray-800 dark:text-white">
+                    {formatSelectedTime(timezone2, hourDiff)}
+                  </span>
+                </div>
+              </div>
+              
+              {/* Overlap information */}
+              <div className="mb-4 p-3 bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-100 dark:border-indigo-800 rounded-md">
+                <h4 className="text-sm font-medium text-indigo-800 dark:text-indigo-300 mb-2 flex items-center">
+                  <div className="w-3 h-3 rounded-full bg-indigo-600 bg-opacity-70 dark:bg-indigo-500 mr-2"></div>
+                  Working Hours Overlap
+                </h4>
+                
+                <div className="grid grid-cols-1 gap-2">
+                  <div>
+                    <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">Total Potential Overlap</p>
+                    <p className="text-sm font-medium text-indigo-800 dark:text-indigo-300">
+                      {getWorkingHoursOverlap().toFixed(1)} hours
+                    </p>
                   </div>
                   
-                  {dragStartHour !== null && dragEndHour !== null ? (
+                  {getSelectedTimeOverlap() > 0 && (
                     <div>
-                      {(() => {
-                        const start = Math.min(dragStartHour, dragEndHour);
-                        const end = Math.max(dragStartHour, dragEndHour);
-                        
-                        const startHour = Math.floor(start);
-                        const startMinute = start % 1 === 0 ? 0 : 30;
-                        
-                        const endHour = Math.floor(end);
-                        const endMinute = end % 1 === 0 ? 0 : 30;
-                        
-                        const startTime = time1.set({ hour: startHour, minute: startMinute, second: 0 });
-                        const endTime = time1.set({ hour: endHour, minute: endMinute, second: 0 }).plus({ minutes: 30 });
-                        
-                        return (
-                          <div className="space-y-1">
-                            <div className="text-location1-bright font-mono text-lg">
-                              {startTime.toFormat('h:mm a')} - {endTime.toFormat('h:mm a')}
-                            </div>
-                            <div className="text-gray-400 text-sm">
-                              {startTime.toFormat('EEEE, MMMM d, yyyy')}
-                            </div>
-                          </div>
-                        );
-                      })()}
-                    </div>
-                  ) : (
-                    <div>
-                      {(() => {
-                        if (selectedHour === null) return null;
-                        
-                        const hour = Math.floor(selectedHour);
-                        const minute = selectedHour % 1 === 0 ? 0 : 30;
-                        const selectedTime = time1.set({ hour, minute, second: 0 });
-                        
-                        return (
-                          <div className="space-y-1">
-                            <div className="text-location1-bright font-mono text-lg">
-                              {selectedTime.toFormat('h:mm a')}
-                            </div>
-                            <div className="text-gray-400 text-sm">
-                              {selectedTime.toFormat('EEEE, MMMM d, yyyy')}
-                            </div>
-                          </div>
-                        );
-                      })()}
+                      <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">Overlap in Selected Time</p>
+                      <p className="text-sm font-medium text-indigo-800 dark:text-indigo-300">
+                        {getSelectedTimeOverlap().toFixed(1)} hours ({Math.round((getSelectedTimeOverlap() / getTotalHoursSelected()) * 100)}% of selection)
+                      </p>
                     </div>
                   )}
                 </div>
-                
-                {/* Second location */}
-                <div className="p-3 bg-gray-700/30 rounded-lg">
-                  <div className="flex items-center space-x-2 mb-1">
-                    <div className="w-3 h-3 bg-location2 rounded-full"></div>
-                    <h4 className="text-sm font-medium text-gray-300">{timezone2.label}</h4>
-                  </div>
-                  
-                  {dragStartHour !== null && dragEndHour !== null ? (
-                    <div>
-                      {(() => {
-                        const start = Math.min(dragStartHour, dragEndHour);
-                        const end = Math.max(dragStartHour, dragEndHour);
-                        
-                        const startTime2HourDecimal = (start + hourDiff + 48) % 24;
-                        const endTime2HourDecimal = (end + hourDiff + 48) % 24;
-                        
-                        const startTime2Hour = Math.floor(startTime2HourDecimal);
-                        const startTime2Minute = Math.round((startTime2HourDecimal % 1) * 60);
-                        
-                        const endTime2Hour = Math.floor(endTime2HourDecimal);
-                        const endTime2Minute = Math.round((endTime2HourDecimal % 1) * 60);
-                        
-                        const startTime = time2.set({ hour: startTime2Hour, minute: startTime2Minute, second: 0 });
-                        const endTime = time2.set({ hour: endTime2Hour, minute: endTime2Minute, second: 0 }).plus({ minutes: 30 });
-                        
-                        return (
-                          <div className="space-y-1">
-                            <div className="text-location2-bright font-mono text-lg">
-                              {startTime.toFormat('h:mm a')} - {endTime.toFormat('h:mm a')}
-                            </div>
-                            <div className="text-gray-400 text-sm">
-                              {startTime.toFormat('EEEE, MMMM d, yyyy')}
-                            </div>
-                          </div>
-                        );
-                      })()}
-                    </div>
-                  ) : (
-                    <div>
-                      {(() => {
-                        if (selectedHour === null) return null;
-                        
-                        const hourDecimal = (selectedHour + hourDiff + 48) % 24;
-                        const hour = Math.floor(hourDecimal);
-                        const minute = Math.round((hourDecimal % 1) * 60);
-                        const selectedTime = time2.set({ hour, minute, second: 0 });
-                        
-                        return (
-                          <div className="space-y-1">
-                            <div className="text-location2-bright font-mono text-lg">
-                              {selectedTime.toFormat('h:mm a')}
-                            </div>
-                            <div className="text-gray-400 text-sm">
-                              {selectedTime.toFormat('EEEE, MMMM d, yyyy')}
-                            </div>
-                          </div>
-                        );
-                      })()}
-                    </div>
-                  )}
+              </div>
+              
+              {/* Status indicators */}
+              <div className="mb-4 grid grid-cols-2 gap-2">
+                <div className={`text-xs rounded-md py-1 px-2 flex items-center ${isSelectedTimeInWorkingHours(1) ? 'bg-blue-200 text-blue-800 dark:bg-location1 dark:bg-opacity-20 dark:text-location1-bright' : 'bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-400'}`}>
+                  <div className={`w-2 h-2 rounded-full mr-2 ${isSelectedTimeInWorkingHours(1) ? 'bg-location1 bg-opacity-70' : 'bg-gray-600'}`}></div>
+                  {isSelectedTimeInWorkingHours(1) ? 
+                    `${timezone1.label.split(' - ')[0]} working hours` : 
+                    `Outside ${timezone1.label.split(' - ')[0]} working hours`
+                  }
                 </div>
-                
-                {/* Show total hours selected */}
-                {dragStartHour !== null && dragEndHour !== null && (
-                  <div className="text-sm text-gray-400 mt-2">
-                    Total time: {getTotalHoursSelected()} hour{getTotalHoursSelected() !== 1 ? 's' : ''}
+                <div className={`text-xs rounded-md py-1 px-2 flex items-center ${isSelectedTimeInWorkingHours(2) ? 'bg-purple-200 text-purple-800 dark:bg-location2 dark:bg-opacity-20 dark:text-location2-bright' : 'bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-400'}`}>
+                  <div className={`w-2 h-2 rounded-full mr-2 ${isSelectedTimeInWorkingHours(2) ? 'bg-location2 bg-opacity-70' : 'bg-gray-600'}`}></div>
+                  {isSelectedTimeInWorkingHours(2) ? 
+                    `${timezone2.label.split(' - ')[0]} working hours` : 
+                    `Outside ${timezone2.label.split(' - ')[0]} working hours`
+                  }
+                </div>
+              </div>
+              
+              {/* Meeting Time information, if applicable */}
+              {showMeetingTime && (
+                <div className="mb-4">
+                  <div className="p-3 border border-amber-200 dark:border-amber-800 rounded-md bg-amber-50 dark:bg-amber-900/30">
+                    <h4 className="text-sm font-medium text-amber-800 dark:text-amber-300 mb-2">Meeting Time</h4>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <p className="text-xs text-gray-600 dark:text-gray-400">{timezone1.label.split(' - ')[0]}</p>
+                        <p className="text-sm font-medium text-amber-800 dark:text-amber-300">
+                          {time1.set({ hour: meetingTime.start, minute: 0 }).toFormat('h:mm a')} - {time1.set({ hour: meetingTime.end, minute: 0 }).toFormat('h:mm a')}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-gray-600 dark:text-gray-400">{timezone2.label.split(' - ')[0]}</p>
+                        <p className="text-sm font-medium text-amber-800 dark:text-amber-300">
+                          {time2.set({ hour: (meetingTime.start + hourDiff + 24) % 24, minute: 0 }).toFormat('h:mm a')} - {time2.set({ hour: (meetingTime.end + hourDiff + 24) % 24, minute: 0 }).toFormat('h:mm a')}
+                        </p>
+                      </div>
+                    </div>
+                    {isSelectedTimeInMeetingHours() && (
+                      <div className="mt-2 flex items-center">
+                        <div className="w-2 h-2 rounded-full bg-amber-600 dark:bg-amber-500 mr-2"></div>
+                        <span className="text-xs text-amber-800 dark:text-amber-300">This time overlaps with meeting hours</span>
+                      </div>
+                    )}
                   </div>
-                )}
+                </div>
+              )}
+              
+              {/* Copy button and total hours */}
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-gray-600 dark:text-gray-400">
+                  Total: {formatTotalSelectedHours().toFixed(1)} {formatTotalSelectedHours() === 1 ? 'hour' : 'hours'}
+                </span>
+                <div className="flex gap-2">
+                  <button
+                    onClick={copySelectedSlot}
+                    className={`px-3 py-1.5 rounded ${
+                      slotCopySuccess ? 'bg-green-600 text-white' : 'bg-blue-600 text-white'
+                    } text-sm focus:outline-none flex items-center`}
+                  >
+                    {slotCopySuccess ? (
+                      <>
+                        <CheckIcon className="h-4 w-4 mr-1" />
+                        Copied!
+                      </>
+                    ) : (
+                      <>
+                        <ClipboardIcon className="h-4 w-4 mr-1" />
+                        Copy
+                      </>
+                    )}
+                  </button>
+                </div>
               </div>
             </div>
-          ) : (
-            <div className="mt-6 p-4 bg-gray-800 rounded-lg">
-              <div className="flex items-center gap-2 text-gray-400">
-                <ClockIcon className="h-5 w-5" />
-                <p>Click and drag to select a time range, or click on any time slot to select a single time.</p>
-              </div>
-            </div>
-          )}
+          ) : null}
 
           {/* Bottom banner ad */}
           <div className="mt-8">

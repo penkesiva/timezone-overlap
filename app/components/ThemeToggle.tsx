@@ -18,7 +18,8 @@ export default function ThemeToggle() {
   const toggleTheme = () => {
     const newTheme = !isDark;
     setIsDark(newTheme);
-    localStorage.setItem('theme', newTheme ? 'dark' : 'light');
+    const themeValue = newTheme ? 'dark' : 'light';
+    localStorage.setItem('theme', themeValue);
     
     // Update HTML class for dark mode
     document.documentElement.classList.toggle('dark', newTheme);
@@ -28,6 +29,12 @@ export default function ThemeToggle() {
     document.body.classList.toggle('to-gray-800', newTheme);
     document.body.classList.toggle('from-gray-50', !newTheme);
     document.body.classList.toggle('to-gray-100', !newTheme);
+    
+    // Dispatch a custom event that components can listen for
+    const themeChangeEvent = new CustomEvent('themeChange', { 
+      detail: { theme: themeValue }
+    });
+    window.dispatchEvent(themeChangeEvent);
   };
 
   if (!mounted) {

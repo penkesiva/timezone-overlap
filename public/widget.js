@@ -88,7 +88,7 @@
     const subTextColor = config.theme === 'dark' ? 'text-gray-400' : 'text-gray-500';
     const borderColor = config.theme === 'dark' ? 'border-gray-700' : 'border-gray-200';
     const location1Color = config.theme === 'dark' ? 'text-blue-400' : 'text-blue-600';
-    const location2Color = config.theme === 'dark' ? 'text-orange-400' : 'text-orange-600';
+    const location2Color = config.theme === 'dark' ? 'text-purple-400' : 'text-purple-600';
     
     // Generate HTML for the widget
     const html = `
